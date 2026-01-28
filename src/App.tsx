@@ -77,8 +77,6 @@ const GoalDetailPageWrapper = () => {
   const currentGoalId = useAppStore((state) => state.currentGoalId);
   const selectGoal = useAppStore((state) => state.selectGoal);
   const closeGoal = useAppStore((state) => state.closeGoal);
-  const isChatMinimized = useAppStore((state) => state.isChatMinimized);
-  const toggleChatMinimized = useAppStore((state) => state.toggleChatMinimized);
 
   // Debug: Track component lifecycle
   useEffect(() => {
@@ -112,19 +110,7 @@ const GoalDetailPageWrapper = () => {
     navigate('/');
   };
 
-  return (
-    <div className="min-h-screen bg-background grid-bg">
-      <Sidebar />
-      <Header />
-      <ChatSidebar
-        mode="goal"
-        goalId={goalId}
-        isMinimized={isChatMinimized}
-        onToggleMinimize={toggleChatMinimized}
-      />
-      <GoalDetailView goal={goal} onClose={handleClose} />
-    </div>
-  );
+  return <GoalDetailView goal={goal} onClose={handleClose} />;
 };
 
 const App = () => (

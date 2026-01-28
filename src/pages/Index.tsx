@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sidebar, SIDEBAR_WIDTH, SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
-import { ChatSidebar } from '@/components/chat/ChatSidebar';
+import { SIDEBAR_WIDTH, SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
 import { GoalGrid } from '@/components/goals/GoalGrid';
 import { GoalDetailView } from '@/components/goals/GoalDetailView';
 import { FinancialSummary } from '@/components/goals/FinancialSummary';
@@ -21,7 +19,6 @@ const Index = () => {
     goals,
     activeCategory,
     isChatMinimized,
-    toggleChatMinimized,
   } = useAppStore();
 
   // Track desktop breakpoint for responsive sidebar margin
@@ -64,21 +61,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background grid-bg">
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Header - Fixed at top */}
-      <Header />
-
-      {/* Chat Sidebar (handles both desktop and mobile) - outside main container for fixed positioning */}
-      <ChatSidebar
-        mode={currentGoalId ? "goal" : "creation"}
-        goalId={currentGoalId || undefined}
-        isMinimized={isChatMinimized}
-        onToggleMinimize={toggleChatMinimized}
-      />
-
+    <>
       {/* Main Content Area - animates with sidebar push/pull */}
       <motion.div
         initial={false}
@@ -144,7 +127,7 @@ const Index = () => {
           <GoalDetailView goal={currentGoal} onClose={closeGoal} />
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

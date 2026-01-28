@@ -339,10 +339,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       <AnimatePresence>
         {isInGoalView && (
           <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
+            initial={{ opacity: 0, x: -SIDEBAR_HANDLE_WIDTH }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -SIDEBAR_HANDLE_WIDTH }}
+            transition={{
+              opacity: { duration: 0.2 }, // Faster fade
+              x: { type: 'spring', stiffness: 300, damping: 30 } // Snappy slide
+            }}
             className={cn(
               "fixed left-0 top-16 h-[calc(100vh-4rem)] z-[60]", // Higher z-index than GoalDetailView (z-50)
               "flex items-center justify-center",
