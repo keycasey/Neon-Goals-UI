@@ -72,7 +72,7 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          transition={{ delay: 0.1, exit: { delay: 0 } }}
+          transition={{ delay: 0.1 }}
         >
           {goal.type === 'item' && <ItemGoalDetail goal={goal as ItemGoal} />}
           {goal.type === 'finance' && <FinanceGoalDetail goal={goal as FinanceGoal} />}

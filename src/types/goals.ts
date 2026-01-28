@@ -1,6 +1,6 @@
 export type GoalType = 'item' | 'finance' | 'action';
 export type GoalStatus = 'active' | 'completed' | 'archived';
-export type ItemStatusBadge = 'in-stock' | 'price-drop' | 'pending-search';
+export type ItemStatusBadge = 'in-stock' | 'price-drop' | 'pending-search' | 'in_stock' | 'price_drop' | 'pending_search';
 
 export interface Goal {
   id: string;

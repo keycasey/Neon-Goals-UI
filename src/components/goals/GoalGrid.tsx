@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { ItemGoalCard } from './ItemGoalCard';
 import { FinanceGoalCard } from './FinanceGoalCard';
 import { ActionGoalCard } from './ActionGoalCard';
+import { GoalListCard } from './GoalListCard';
 import type { Goal, ItemGoal, FinanceGoal, ActionGoal } from '@/types/goals';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
   const {
     goals,
     activeCategory,
+    viewMode,
     deleteGoal,
     archiveGoal,
     syncFinanceGoal,
@@ -62,6 +64,32 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     );
   }
 
+  // List View - wide horizontal cards
+  if (viewMode === 'list') {
+    return (
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className={cn("flex flex-col gap-3", className)}
+      >
+        <AnimatePresence mode="popLayout">
+          {filteredGoals.map((goal) => (
+            <GoalListCard
+              key={goal.id}
+              goal={goal}
+              onViewDetail={handleViewDetail}
+              onDelete={deleteGoal}
+              onArchive={archiveGoal}
+              onSync={syncFinanceGoal}
+            />
+          ))}
+        </AnimatePresence>
+      </motion.div>
+    );
+  }
+
+  // Card View - grid of cards
   return (
     <motion.div
       variants={container}

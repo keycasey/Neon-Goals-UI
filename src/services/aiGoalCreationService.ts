@@ -48,11 +48,15 @@ export const aiGoalCreationService = {
 /**
  * Service for continuing conversations about existing goals
  */
+export interface GoalChatResponse {
+  content: string;
+}
+
 export const aiGoalChatService = {
   /**
    * Send message to continue conversation about a goal
    */
-  async chat(goalId: string, message: string) {
-    return apiClient.post(`/ai/goal-chat/${goalId}`, { message });
+  async chat(goalId: string, message: string): Promise<GoalChatResponse> {
+    return apiClient.post<GoalChatResponse>(`/ai/goal-chat/${goalId}`, { message });
   },
 };
