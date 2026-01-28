@@ -62,7 +62,16 @@ export const authService = {
   },
 
   async getProfile() {
-    return apiClient.get('/auth/me');
+    return apiClient.get<{
+      id: string;
+      name: string;
+      email: string;
+      avatar?: string;
+      githubLogin?: string;
+      githubBio?: string | null;
+      githubLocation?: string | null;
+      githubBlog?: string | null;
+    }>('/auth/me');
   },
 
   logout() {
