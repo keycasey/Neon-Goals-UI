@@ -253,9 +253,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           ))}
         </nav>
 
-        {/* Goals List (in list view mode) */}
-        {viewMode === 'list' && (
-          <div className="flex-1 p-4 border-t border-sidebar-border">
+        {/* Goals List (always visible) */}
+        <div className="flex-1 p-4 border-t border-sidebar-border">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
               Your Goals
             </p>
@@ -290,7 +289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
               ))}
             </div>
           </div>
-        )}
+        
 
         {/* Footer */}
         <div className="mt-auto p-4 border-t border-sidebar-border">
