@@ -8,27 +8,36 @@ interface ActionGoalCardProps {
   goal: ActionGoal;
   onViewDetail: (goalId: string) => void;
   onDelete: (goalId: string) => void;
+  animationIndex: number;
 }
 
 export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
   goal,
   onViewDetail,
   onDelete,
+  animationIndex,
 }) => {
   const completedTasks = goal.tasks.filter(t => t.completed).length;
   const totalTasks = goal.tasks.length;
   const progress = goal.completionPercentage;
+  const shouldAnimate = animationIndex >= 0;
 
   // Get next uncompleted task
   const nextTask = goal.tasks.find(t => !t.completed);
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={shouldAnimate ? { opacity: 0, scale: 0.8, y: 30 } : { opacity: 1, scale: 1, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -4 }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 25,
+        delay: shouldAnimate ? animationIndex * 0.08 : 0,
+      }}
+      whileHover={{ y: -4, scale: 1.02, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
+      whileTap={{ scale: 0.98 }}
       className="glass-card hover-lift cursor-pointer group p-5"
       onClick={() => onViewDetail(goal.id)}
     >

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
@@ -13,8 +13,15 @@ interface GoalGridProps {
   className?: string;
 }
 
+// Module-level flag to track if initial animation has played
+let hasAnimatedOnce = false;
+
 export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
   const navigate = useNavigate();
+  // Always animate on mount - use ref to track if THIS instance has animated
+  const hasAnimatedRef = React.useRef(false);
+  const [shouldAnimate] = React.useState(() => !hasAnimatedRef.current);
+
   const {
     goals,
     activeCategory,
@@ -24,6 +31,14 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     syncFinanceGoal,
     searchAndUpdateGoal,
   } = useAppStore();
+
+  // Mark as animated after initial animation completes
+  useEffect(() => {
+    if (shouldAnimate) {
+      hasAnimatedRef.current = true;
+      hasAnimatedOnce = true;
+    }
+  }, [shouldAnimate]);
 
   const handleViewDetail = (goalId: string) => {
     navigate(`/goals/${goalId}`);
@@ -37,16 +52,6 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     if (activeCategory === 'actions') return goal.type === 'action';
     return false;
   });
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
 
   if (filteredGoals.length === 0) {
     return (
@@ -91,10 +96,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
 
   // Card View - grid of cards
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
+    <div
       className={cn(
         "grid gap-4 md:gap-6",
         "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
@@ -102,7 +104,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
       )}
     >
       <AnimatePresence mode="popLayout">
-        {filteredGoals.map((goal) => (
+        {filteredGoals.map((goal, index) => (
           <GoalCardWrapper
             key={goal.id}
             goal={goal}
@@ -111,10 +113,11 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
             onArchive={archiveGoal}
             onSync={syncFinanceGoal}
             onSearch={searchAndUpdateGoal}
+            animationIndex={shouldAnimate ? index : -1}
           />
         ))}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
@@ -125,6 +128,7 @@ interface GoalCardWrapperProps {
   onArchive: (id: string) => void;
   onSync: (id: string) => void;
   onSearch?: (id: string) => Promise<void>;
+  animationIndex: number; // -1 = skip animation, >= 0 = animate with stagger
 }
 
 const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
@@ -134,6 +138,7 @@ const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
   onArchive,
   onSync,
   onSearch,
+  animationIndex,
 }) => {
   switch (goal.type) {
     case 'item':
@@ -144,6 +149,7 @@ const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
           onDelete={onDelete}
           onArchive={onArchive}
           onSearch={onSearch}
+          animationIndex={animationIndex}
         />
       );
     case 'finance':
@@ -153,6 +159,7 @@ const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
           onViewDetail={onViewDetail}
           onSync={onSync}
           onDelete={onDelete}
+          animationIndex={animationIndex}
         />
       );
     case 'action':
@@ -161,6 +168,7 @@ const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
           goal={goal as ActionGoal}
           onViewDetail={onViewDetail}
           onDelete={onDelete}
+          animationIndex={animationIndex}
         />
       );
     default:

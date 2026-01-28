@@ -10,6 +10,7 @@ interface ItemGoalCardProps {
   onDelete: (goalId: string) => void;
   onArchive: (goalId: string) => void;
   onSearch?: (goalId: string) => void;
+  animationIndex: number;
 }
 
 const statusConfig = {
@@ -24,9 +25,11 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
   onDelete,
   onArchive,
   onSearch,
+  animationIndex,
 }) => {
   const [isSearching, setIsSearching] = useState(false);
   const status = statusConfig[goal.statusBadge];
+  const shouldAnimate = animationIndex >= 0;
 
   const handleSearch = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -42,11 +45,17 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={shouldAnimate ? { opacity: 0, scale: 0.8, y: 30 } : { opacity: 1, scale: 1, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -4 }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 25,
+        delay: shouldAnimate ? animationIndex * 0.08 : 0,
+      }}
+      whileHover={{ y: -4, scale: 1.02, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
+      whileTap={{ scale: 0.98 }}
       className="glass-card hover-lift cursor-pointer group"
       onClick={() => onViewDetail(goal.id)}
     >

@@ -9,6 +9,7 @@ interface FinanceGoalCardProps {
   onViewDetail: (goalId: string) => void;
   onSync: (goalId: string) => void;
   onDelete: (goalId: string) => void;
+  animationIndex: number;
 }
 
 export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
@@ -16,10 +17,12 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
   onViewDetail,
   onSync,
   onDelete,
+  animationIndex,
 }) => {
   const progress = Math.min((goal.currentBalance / goal.targetBalance) * 100, 100);
   const remaining = goal.targetBalance - goal.currentBalance;
-  
+  const shouldAnimate = animationIndex >= 0;
+
   // Calculate trend from history
   const historyLength = goal.progressHistory.length;
   const previousBalance = historyLength > 1 ? goal.progressHistory[historyLength - 2] : goal.currentBalance;
@@ -33,11 +36,17 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={shouldAnimate ? { opacity: 0, scale: 0.8, y: 30 } : { opacity: 1, scale: 1, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -4 }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 25,
+        delay: shouldAnimate ? animationIndex * 0.08 : 0,
+      }}
+      whileHover={{ y: -4, scale: 1.02, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
+      whileTap={{ scale: 0.98 }}
       className="glass-card hover-lift cursor-pointer group p-5"
       onClick={() => onViewDetail(goal.id)}
     >

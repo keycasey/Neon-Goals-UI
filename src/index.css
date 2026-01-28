@@ -279,14 +279,13 @@
     box-shadow: 0 0 10px var(--neon-cyan), 0 0 20px rgba(0, 240, 255, 0.3);
   }
 
-  /* Hover Card Effect */
+  /* Hover Card Effect - transform handled by framer-motion, CSS only does glow */
   .hover-lift {
-    @apply transition-all duration-300;
+    @apply transition-shadow duration-300;
   }
 
   .hover-lift:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 
+    box-shadow:
       0 10px 40px rgba(0, 240, 255, 0.2),
       0 0 20px rgba(255, 0, 255, 0.1);
   }
