@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, LayoutGrid, List, Bell, Search, LogIn } from 'lucide-react';
+import { Menu, LayoutGrid, List, Bell, Search, LogIn, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
@@ -23,10 +23,10 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 left-0 h-16 px-4 lg:px-6 flex items-center justify-between",
+        "fixed top-0 right-0 left-0 h-16 px-4 flex items-center justify-between",
         "bg-background/80 backdrop-blur-md",
         "border-b border-border",
-        "z-[60] lg:pl-[292px]",
+        "z-[60] lg:pl-[292px] lg:px-4",
         className
       )}
     >
@@ -36,17 +36,27 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
         <button
           onClick={toggleSidebar}
           className={cn(
-            "p-2 rounded-lg transition-colors",
-            "hover:bg-muted text-muted-foreground hover:text-foreground",
-            sidebarOpen && "lg:hidden"
+            "p-2 rounded-lg transition-colors lg:hidden",
+            "hover:bg-muted text-muted-foreground hover:text-foreground"
           )}
           aria-label="Toggle sidebar"
         >
           <Menu className="w-5 h-5" />
         </button>
 
+        {/* Logo & Title - Aligned with sidebar content */}
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <div className="w-10 h-10 rounded-lg bg-gradient-neon flex items-center justify-center">
+            <Target className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="font-heading font-bold text-lg gradient-text">Neon Goals</h1>
+            <p className="text-xs text-muted-foreground">Crush your goals</p>
+          </div>
+        </Link>
+
         {/* Search (Desktop) */}
-        <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border w-64 lg:w-80">
+        <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border w-64 lg:w-80 lg:ml-[122px]">
           <Search className="w-4 h-4 text-muted-foreground" />
           <input
             type="text"

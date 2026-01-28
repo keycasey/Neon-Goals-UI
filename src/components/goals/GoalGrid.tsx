@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { ItemGoalCard } from './ItemGoalCard';
 import { FinanceGoalCard } from './FinanceGoalCard';
@@ -12,14 +13,19 @@ interface GoalGridProps {
 }
 
 export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
-  const { 
-    goals, 
-    activeCategory, 
-    selectGoal, 
-    deleteGoal, 
+  const navigate = useNavigate();
+  const {
+    goals,
+    activeCategory,
+    deleteGoal,
     archiveGoal,
-    syncFinanceGoal 
+    syncFinanceGoal,
+    searchAndUpdateGoal,
   } = useAppStore();
+
+  const handleViewDetail = (goalId: string) => {
+    navigate(`/goals/${goalId}`);
+  };
 
   const filteredGoals = goals.filter(goal => {
     if (goal.status !== 'active') return false;
@@ -72,10 +78,11 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
           <GoalCardWrapper
             key={goal.id}
             goal={goal}
-            onViewDetail={selectGoal}
+            onViewDetail={handleViewDetail}
             onDelete={deleteGoal}
             onArchive={archiveGoal}
             onSync={syncFinanceGoal}
+            onSearch={searchAndUpdateGoal}
           />
         ))}
       </AnimatePresence>
@@ -89,6 +96,7 @@ interface GoalCardWrapperProps {
   onDelete: (id: string) => void;
   onArchive: (id: string) => void;
   onSync: (id: string) => void;
+  onSearch?: (id: string) => Promise<void>;
 }
 
 const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
@@ -97,6 +105,7 @@ const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
   onDelete,
   onArchive,
   onSync,
+  onSearch,
 }) => {
   switch (goal.type) {
     case 'item':
@@ -106,6 +115,7 @@ const GoalCardWrapper: React.FC<GoalCardWrapperProps> = ({
           onViewDetail={onViewDetail}
           onDelete={onDelete}
           onArchive={onArchive}
+          onSearch={onSearch}
         />
       );
     case 'finance':

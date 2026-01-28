@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id            String    @id @default(cuid())
+  githubId      String?   @unique
+  name          String
+  email         String    @unique
+  avatar        String?
+  githubLogin   String?
+  githubBio     String?
+  githubLocation String?
+  githubBlog    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  goals         Goal[]
+  settings      Settings?
+  messages      Message[]
+  chats         ChatState[]
+}
+
+// Settings model
+model Settings {
+  id        String   @id @default(cuid())
+  theme     String   @default("miami-vice")
+  chatModel String   @default("gpt-4")
+  displayName String @default("User")
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Base Goal model (using polymorphism via type field)
+model Goal {
+  id          String        @id @default(cuid())
+  type        GoalType
+  title       String
+  description String
+  status      GoalStatus    @default(active)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  userId      String
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  chats       ChatState[]
+
+  // One-to-one relations for goal-specific data
+  itemData    ItemGoalData?
+  financeData FinanceGoalData?
+  actionData  ActionGoalData?
+
+  @@index([userId, type])
+  @@index([userId, status])
+}
+
+// ItemGoal specific fields (using one-to-one relation)
+model ItemGoalData {
+  id               String               @id @default(cuid())
+  goalId           String               @unique
+  goal             Goal                 @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  productImage     String
+  bestPrice        Float
+  currency         String               @default("USD")
+  retailerUrl      String
+  retailerName     String
+  statusBadge      ItemStatusBadge
+
+  // Optional search results (stored as JSONB)
+  searchResults    Json?
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+// FinanceGoal specific fields
+model FinanceGoalData {
+  id               String               @id @default(cuid())
+  goalId           String               @unique
+  goal             Goal                 @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  institutionIcon  String
+  accountName      String
+  currentBalance   Float
+  targetBalance    Float
+  currency         String               @default("USD")
+  progressHistory   Float[]
+  lastSync         DateTime?
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+// ActionGoal specific fields
+model ActionGoalData {
+  id                    String               @id @default(cuid())
+  goalId                String               @unique
+  goal                  Goal                 @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  completionPercentage Int                  @default(0)
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relations
+  tasks                 Task[]
+}
+
+// Task model for ActionGoals
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  actionGoal  ActionGoalData @relation(fields: [actionGoalId], references: [id], onDelete: Cascade)
+  actionGoalId String
+
+  @@index([actionGoalId, completed])
+}
+
+// Chat messages
+model Message {
+  id        String   @id @default(cuid())
+  role      String   // "user" | "assistant"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  goal      Goal?    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  goalId    String?
+  chat      ChatState? @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId    String?
+
+  @@index([userId])
+  @@index([goalId])
+  @@index([chatId])
+}
+
+// Chat state for tracking conversations
+model ChatState {
+  id        String   @id @default(cuid())
+  type      String   // "creation" | "goal"
+  isLoading Boolean  @default(false)
+
+  // Relations
+  goal      Goal?    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  goalId    String?
+  messages  Message[]
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([goalId])
+  @@index([userId, type])
+}
+
+// Enums
+enum GoalType {
+  item
+  finance
+  action
+}
+
+enum GoalStatus {
+  active
+  completed
+  archived
+}
+
+enum ItemStatusBadge {
+  in_stock
+  price_drop
+  pending_search
+}

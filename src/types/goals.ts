@@ -47,6 +47,7 @@ export interface ActionGoal extends Goal {
   type: 'action';
   completionPercentage: number;
   tasks: ActionTask[];
+  motivation?: string;
 }
 
 export interface ActionTask {
@@ -79,6 +80,8 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  goalPreview?: string;
+  awaitingConfirmation?: boolean;
 }
 
 export interface ChatState {

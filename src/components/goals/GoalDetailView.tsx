@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, TrendingUp, Plus, CheckCircle2, Circle } from 'lucide-react';
+import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
-import { ChatPanel } from '@/components/chat/ChatPanel';
+import { SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
 import type { Goal, ItemGoal, FinanceGoal, ActionGoal } from '@/types/goals';
 
 interface GoalDetailViewProps {
@@ -12,12 +12,26 @@ interface GoalDetailViewProps {
 }
 
 export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose }) => {
+  const [isDesktop, setIsDesktop] = useState(false);
+  const { isChatMinimized } = useAppStore();
+
+  // Track desktop breakpoint for sidebar handle margin
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md overflow-hidden"
+      exit={{
+        opacity: 0,
+        transition: { duration: 0.5, delay: 0.3 }, // Wait for child animations
+      }}
+      className="fixed inset-0 z-40 bg-background/95 backdrop-blur-md overflow-hidden"
     >
       {/* Close Button */}
       <button
@@ -28,31 +42,44 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
         <X className="w-5 h-5" />
       </button>
 
-      {/* Split View */}
-      <div className="h-full flex flex-col lg:flex-row">
-        {/* Left Panel - Goal Details */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-8 scrollbar-neon">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            {goal.type === 'item' && <ItemGoalDetail goal={goal as ItemGoal} />}
-            {goal.type === 'finance' && <FinanceGoalDetail goal={goal as FinanceGoal} />}
-            {goal.type === 'action' && <ActionGoalDetail goal={goal as ActionGoal} />}
-          </motion.div>
-        </div>
-
-        {/* Right Panel - Chat */}
+      {/* Goal Details Content - respects sidebar handle on desktop */}
+      <motion.div
+        initial={{ opacity: 0, left: 0 }}
+        animate={{
+          opacity: 1,
+          // On desktop: leave space for the sidebar handle
+          left: isDesktop ? SIDEBAR_HANDLE_WIDTH : 0,
+        }}
+        exit={{
+          opacity: 0,
+          // Slide back to the left when exiting
+          left: 0,
+        }}
+        transition={{
+          opacity: { duration: 0.3 },
+          left: {
+            type: 'tween',
+            duration: 0.4,
+            ease: [0.4, 0, 1, 1], // Sync with sidebar exit timing
+          },
+        }}
+        className={cn(
+          "absolute top-16 bottom-0 overflow-y-auto p-6 lg:p-8 scrollbar-neon",
+          isChatMinimized ? "right-0" : "lg:right-[416px]"
+        )}
+      >
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="w-full lg:w-[400px] xl:w-[450px] border-t lg:border-t-0 lg:border-l border-border bg-card/30"
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ delay: 0.1, exit: { delay: 0 } }}
         >
-          <ChatPanel mode="goal" goalId={goal.id} className="h-full rounded-none border-0" />
+          {goal.type === 'item' && <ItemGoalDetail goal={goal as ItemGoal} />}
+          {goal.type === 'finance' && <FinanceGoalDetail goal={goal as FinanceGoal} />}
+          {goal.type === 'action' && <ActionGoalDetail goal={goal as ActionGoal} />}
         </motion.div>
-      </div>
+      </motion.div>
+
     </motion.div>
   );
 };
@@ -282,6 +309,23 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
         </h1>
         <p className="text-lg text-muted-foreground">{goal.description}</p>
       </div>
+
+      {/* Motivation Card */}
+      {goal.motivation && (
+        <div className="glass-card p-6 neon-border mb-6">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-neon flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">💭</span>
+            </div>
+            <div>
+              <h3 className="font-heading font-semibold text-foreground mb-1">
+                Your Why
+              </h3>
+              <p className="text-muted-foreground">{goal.motivation}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress Card */}
       <div className="glass-card p-6 neon-border mb-6">

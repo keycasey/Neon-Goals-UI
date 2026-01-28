@@ -12,7 +12,7 @@ const Callback = () => {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const code = searchParams.get('code');
+      const token = searchParams.get('token');
       const errorParam = searchParams.get('error');
       const errorDescription = searchParams.get('error_description');
 
@@ -23,15 +23,15 @@ const Callback = () => {
         return;
       }
 
-      if (!code) {
+      if (!token) {
         setStatus('error');
-        setError('No authorization code received');
+        setError('No authorization token received');
         setTimeout(() => navigate('/login'), 3000);
         return;
       }
 
       try {
-        const user = await handleGitHubCallback(code);
+        const user = await handleGitHubCallback(token);
         setUser(user);
         setStatus('success');
         setTimeout(() => navigate('/'), 500);

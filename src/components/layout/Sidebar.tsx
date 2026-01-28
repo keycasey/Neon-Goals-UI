@@ -1,19 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Menu, 
-  X, 
-  ShoppingBag, 
-  Wallet, 
-  Target, 
-  Settings, 
+import {
+  Menu,
+  X,
+  ShoppingBag,
+  Wallet,
+  Target,
+  Settings,
   User,
   LayoutGrid,
-  List
+  List,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { GoalCategory } from '@/types/goals';
+
+// SIDEBAR WIDTH - exported for use in other components
+export const SIDEBAR_WIDTH = 280;
+export const SIDEBAR_HANDLE_WIDTH = 48;
 
 const categories: { id: GoalCategory; label: string; icon: React.ReactNode }[] = [
   { id: 'all', label: 'All Goals', icon: <LayoutGrid className="w-5 h-5" /> },
@@ -27,10 +33,14 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
-  const { 
-    sidebarOpen, 
-    toggleSidebar, 
-    activeCategory, 
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const {
+    sidebarOpen,
+    toggleSidebar,
+    setSidebarOpen,
+    activeCategory,
     setActiveCategory,
     goals,
     user,
@@ -38,7 +48,68 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     setViewMode,
     selectGoal,
     currentGoalId,
+    closeGoal,
   } = useAppStore();
+
+  // Determine if we're in goal view mode
+  const isInGoalView = currentGoalId !== null;
+
+  // Track previous goal view state for animation direction
+  const wasInGoalViewRef = React.useRef(isInGoalView);
+
+  // Determine if we're entering or exiting goal view
+  const isEnteringGoalView = isInGoalView && !wasInGoalViewRef.current;
+  const isExitingGoalView = !isInGoalView && wasInGoalViewRef.current;
+
+  // Debug: Track component lifecycle
+  useEffect(() => {
+    console.log('[Sidebar] MOUNTED');
+    return () => {
+      console.log('[Sidebar] UNMOUNTED');
+    };
+  }, []);
+
+  // Debug: Track state changes
+  useEffect(() => {
+    console.log('[Sidebar] State changed:', {
+      sidebarOpen,
+      isInGoalView,
+      isEnteringGoalView,
+      isExitingGoalView,
+      isOnGoalRoute: location.pathname.startsWith('/goals/'),
+      targetX: isInGoalView
+        ? -(SIDEBAR_WIDTH - SIDEBAR_HANDLE_WIDTH)
+        : sidebarOpen
+          ? 0
+          : -SIDEBAR_WIDTH
+    });
+  }, [sidebarOpen, isInGoalView, isEnteringGoalView, isExitingGoalView, location.pathname]);
+
+  // Update ref after render
+  useEffect(() => {
+    wasInGoalViewRef.current = isInGoalView;
+  }, [isInGoalView]);
+
+  // Calculate target X position
+  const targetX = isInGoalView
+    ? -(SIDEBAR_WIDTH - SIDEBAR_HANDLE_WIDTH)
+    : sidebarOpen
+      ? 0
+      : -SIDEBAR_WIDTH;
+
+  // Check if we're on a goal URL route (vs modal overlay)
+  const isOnGoalRoute = location.pathname.startsWith('/goals/');
+
+  // Handle returning from goal view to overview
+  const handleReturnToOverview = () => {
+    closeGoal();
+    // Ensure sidebar opens when returning to overview
+    setSidebarOpen(true);
+    // If on a goal URL route, navigate back to home
+    if (isOnGoalRoute) {
+      navigate('/');
+    }
+  };
 
   const filteredGoals = goals.filter(goal => {
     if (activeCategory === 'all') return goal.status === 'active';
@@ -75,12 +146,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
       {/* Sidebar */}
       <motion.aside
-        initial={false}
-        animate={{
-          x: sidebarOpen ? 0 : -280,
-          width: 280,
-        }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        initial={{ x: sidebarOpen ? 0 : -SIDEBAR_WIDTH }}
+        animate={{ x: targetX }}
+        transition={
+          isEnteringGoalView
+            ? {
+                type: 'tween',
+                duration: 0.4,
+                ease: [0.4, 0, 1, 1], // ease-in for entering
+              }
+            : isExitingGoalView
+              ? {
+                  type: 'tween',
+                  duration: 0.5,
+                  ease: [0, 0, 0.2, 1], // ease-out for exiting
+                }
+              : {
+                  type: 'spring',
+                  damping: 20,
+                  stiffness: 200,
+                }
+        }
         className={cn(
           "fixed left-0 top-16 h-[calc(100vh-4rem)] z-50",
           "bg-sidebar border-r border-sidebar-border",
@@ -88,19 +174,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           "scrollbar-neon overflow-y-auto",
           className
         )}
+        style={{ width: SIDEBAR_WIDTH }}
       >
-        {/* Header */}
+        {/* Header - Close button only */}
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-neon flex items-center justify-center">
-              <Target className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-heading font-bold text-lg gradient-text">Goals-AF</h1>
-              <p className="text-xs text-muted-foreground">Crush your goals</p>
-            </div>
-          </div>
-          <button 
+          <span className="font-heading font-semibold text-foreground">Menu</span>
+          <button
             onClick={toggleSidebar}
             className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors lg:hidden"
           >
@@ -244,7 +323,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
       {/* Mobile Toggle Button (when sidebar is closed) */}
       <AnimatePresence>
-        {!sidebarOpen && (
+        {!sidebarOpen && !isInGoalView && (
           <motion.button
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -253,6 +332,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
             className="fixed left-4 top-4 z-40 p-3 rounded-lg glass-card neon-border lg:hidden"
           >
             <Menu className="w-5 h-5 text-primary" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Goal View Toggle Handle - the slim "ghost" handle visible when sidebar slides out */}
+      <AnimatePresence>
+        {isInGoalView && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className={cn(
+              "fixed left-0 top-16 h-[calc(100vh-4rem)] z-[60]", // Higher z-index than GoalDetailView (z-50)
+              "flex items-center justify-center",
+              "bg-sidebar/80 backdrop-blur-sm border-r border-sidebar-border",
+              "cursor-pointer group",
+              "hover:bg-sidebar/90 transition-colors"
+            )}
+            style={{ width: SIDEBAR_HANDLE_WIDTH }}
+            onClick={handleReturnToOverview}
+            aria-label="Return to overview"
+          >
+            <motion.div
+              className="flex flex-col items-center gap-2 text-sidebar-foreground group-hover:text-primary transition-colors pointer-events-none"
+              initial={false}
+              animate={{ x: 0 }}
+              whileHover={{ x: 4 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+              <ChevronRight className="w-5 h-5 neon-text-cyan opacity-60 group-hover:opacity-100 transition-opacity" />
+              <span
+                className="text-xs font-medium opacity-60 group-hover:opacity-100 transition-opacity"
+                style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+              >
+                Back
+              </span>
+            </motion.div>
           </motion.button>
         )}
       </AnimatePresence>

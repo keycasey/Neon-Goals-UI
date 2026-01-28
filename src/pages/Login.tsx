@@ -4,6 +4,7 @@ import { Github, Chrome as ChromeIcon, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { initiateGitHubLogin } from '@/services/githubAuth';
+import { authService } from '@/services/authService';
 import { cn } from '@/lib/utils';
 
 const Login = () => {
@@ -22,16 +23,16 @@ const Login = () => {
     initiateGitHubLogin();
   };
 
-  const handleDemoLogin = () => {
-    // Demo mode login with mock user
-    const mockUser = {
-      id: 'demo-user',
-      name: 'Demo User',
-      email: 'demo@goals-af.com',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
-    };
-    setUser(mockUser);
-    navigate('/');
+  const handleDemoLogin = async () => {
+    try {
+      // Call backend demo endpoint to get a valid JWT token
+      const demoUser = await authService.demoLogin();
+      setUser(demoUser);
+      navigate('/');
+    } catch (error) {
+      console.error('Demo login failed:', error);
+      alert('Demo login failed. Please try again.');
+    }
   };
 
   const handleGoogleLogin = () => {

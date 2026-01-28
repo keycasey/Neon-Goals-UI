@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, Trash2, Archive, TrendingDown, Package, Clock } from 'lucide-react';
+import { ExternalLink, Trash2, Archive, TrendingDown, Package, Clock, Search, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ItemGoal } from '@/types/goals';
 
@@ -9,12 +9,13 @@ interface ItemGoalCardProps {
   onViewDetail: (goalId: string) => void;
   onDelete: (goalId: string) => void;
   onArchive: (goalId: string) => void;
+  onSearch?: (goalId: string) => void;
 }
 
 const statusConfig = {
-  'in-stock': { label: 'In Stock', class: 'badge-success' },
-  'price-drop': { label: 'Price Drop!', class: 'badge-warning' },
-  'pending-search': { label: 'Searching...', class: 'badge-info' },
+  'in_stock': { label: 'In Stock', class: 'badge-success' },
+  'price_drop': { label: 'Price Drop!', class: 'badge-warning' },
+  'pending_search': { label: 'Searching...', class: 'badge-info' },
 };
 
 export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
@@ -22,8 +23,22 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
   onViewDetail,
   onDelete,
   onArchive,
+  onSearch,
 }) => {
+  const [isSearching, setIsSearching] = useState(false);
   const status = statusConfig[goal.statusBadge];
+
+  const handleSearch = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onSearch || isSearching) return;
+
+    setIsSearching(true);
+    try {
+      await onSearch(goal.id);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
     <motion.div
@@ -46,12 +61,14 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
         
         {/* Status Badge */}
         <div className="absolute top-3 left-3">
-          <span className={cn(status.class, "flex items-center gap-1")}>
-            {goal.statusBadge === 'price-drop' && <TrendingDown className="w-3 h-3" />}
-            {goal.statusBadge === 'in-stock' && <Package className="w-3 h-3" />}
-            {goal.statusBadge === 'pending-search' && <Clock className="w-3 h-3" />}
-            {status.label}
-          </span>
+          {status ? (
+            <span className={cn(status.class, "flex items-center gap-1")}>
+              {goal.statusBadge === 'price_drop' && <TrendingDown className="w-3 h-3" />}
+              {goal.statusBadge === 'in_stock' && <Package className="w-3 h-3" />}
+              {goal.statusBadge === 'pending_search' && <Clock className="w-3 h-3" />}
+              {status.label}
+            </span>
+          ) : null}
         </div>
 
         {/* Quick Actions */}
@@ -93,17 +110,43 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
               Best price at {goal.retailerName}
             </p>
           </div>
-          
-          <a
-            href={goal.retailerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-neon text-primary-foreground font-medium text-sm transition-all hover:scale-105 neon-glow-cyan"
-          >
-            Buy
-            <ExternalLink className="w-4 h-4" />
-          </a>
+
+          <div className="flex gap-2">
+            {onSearch && (
+              <button
+                onClick={handleSearch}
+                disabled={isSearching}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm transition-all",
+                  isSearching
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-primary/20 text-primary hover:bg-primary/30 hover:scale-105"
+                )}
+              >
+                {isSearching ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    Search
+                  </>
+                )}
+              </button>
+            )}
+            <a
+              href={goal.retailerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-neon text-primary-foreground font-medium text-sm transition-all hover:scale-105 neon-glow-cyan"
+            >
+              Buy
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </div>
     </motion.div>
