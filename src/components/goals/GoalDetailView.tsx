@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
@@ -10,6 +10,48 @@ interface GoalDetailViewProps {
   goal: Goal;
   onClose: () => void;
 }
+
+// Spring animation config for bouncy effect
+const springConfig = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 25,
+};
+
+// Staggered children animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      staggerChildren: 0.05,
+      staggerDirection: -1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: springConfig,
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    scale: 0.95,
+    transition: { duration: 0.2 },
+  },
+};
 
 export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose }) => {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -29,50 +71,47 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
       animate={{ opacity: 1 }}
       exit={{
         opacity: 0,
-        transition: { duration: 0.5, delay: 0.3 }, // Wait for child animations
+        transition: { duration: 0.4, delay: 0.2 },
       }}
       className="fixed inset-0 z-40 bg-background/95 backdrop-blur-md overflow-hidden"
     >
       {/* Close Button */}
-      <button
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        transition={{ ...springConfig, delay: 0.2 }}
         onClick={onClose}
         className="absolute top-4 right-4 z-10 p-3 rounded-xl glass-card neon-border text-foreground hover:neon-glow-cyan transition-all"
         aria-label="Close"
       >
         <X className="w-5 h-5" />
-      </button>
+      </motion.button>
 
       {/* Goal Details Content - respects sidebar handle on desktop */}
       <motion.div
-        initial={{ opacity: 0, left: 0 }}
+        initial={{ opacity: 0, x: -40 }}
         animate={{
           opacity: 1,
-          // On desktop: leave space for the sidebar handle
+          x: 0,
           left: isDesktop ? SIDEBAR_HANDLE_WIDTH : 0,
         }}
         exit={{
           opacity: 0,
-          // Slide back to the left when exiting
+          x: -40,
           left: 0,
         }}
-        transition={{
-          opacity: { duration: 0.3 },
-          left: {
-            type: 'tween',
-            duration: 0.4,
-            ease: [0.4, 0, 1, 1], // Sync with sidebar exit timing
-          },
-        }}
+        transition={springConfig}
         className={cn(
           "absolute top-16 bottom-0 overflow-y-auto p-6 lg:p-8 scrollbar-neon",
           isChatMinimized ? "right-0" : "lg:right-[416px]"
         )}
       >
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ delay: 0.1 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
         >
           {goal.type === 'item' && <ItemGoalDetail goal={goal as ItemGoal} />}
           {goal.type === 'finance' && <FinanceGoalDetail goal={goal as FinanceGoal} />}
@@ -89,27 +128,30 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
   return (
     <div className="max-w-3xl">
       {/* Image */}
-      <div className="relative h-64 lg:h-80 rounded-2xl overflow-hidden mb-6">
+      <motion.div 
+        variants={itemVariants}
+        className="relative h-64 lg:h-80 rounded-2xl overflow-hidden mb-6"
+      >
         <img
           src={goal.productImage}
           alt={goal.title}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-      </div>
+      </motion.div>
 
       {/* Content */}
       <div className="space-y-6">
-        <div>
+        <motion.div variants={itemVariants}>
           <span className="badge-info mb-2 inline-block">Item Goal</span>
           <h1 className="font-heading text-3xl lg:text-4xl font-bold text-foreground mb-2">
             {goal.title}
           </h1>
           <p className="text-lg text-muted-foreground">{goal.description}</p>
-        </div>
+        </motion.div>
 
         {/* Price Card */}
-        <div className="glass-card p-6 neon-border">
+        <motion.div variants={itemVariants} className="glass-card p-6 neon-border">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Best Price</p>
@@ -130,10 +172,10 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
               <ExternalLink className="w-5 h-5" />
             </a>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Specs Placeholder */}
-        <div className="glass-card p-6">
+        {/* Specs */}
+        <motion.div variants={itemVariants} className="glass-card p-6">
           <h3 className="font-heading font-semibold text-lg text-foreground mb-4">
             Product Details
           </h3>
@@ -141,7 +183,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
             <div className="p-3 rounded-lg bg-muted/30">
               <p className="text-muted-foreground">Status</p>
               <p className="text-foreground font-medium capitalize">
-                {goal.statusBadge.replace('-', ' ')}
+                {goal.statusBadge.replace('-', ' ').replace('_', ' ')}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-muted/30">
@@ -161,7 +203,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
@@ -175,7 +217,7 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
   return (
     <div className="max-w-3xl">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
+      <motion.div variants={itemVariants} className="flex items-center gap-4 mb-8">
         <div className="w-16 h-16 rounded-2xl bg-gradient-sunset flex items-center justify-center text-3xl">
           {goal.institutionIcon}
         </div>
@@ -186,10 +228,10 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
           </h1>
           <p className="text-lg text-muted-foreground">{goal.accountName}</p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Balance Card */}
-      <div className="glass-card p-6 neon-border mb-6">
+      <motion.div variants={itemVariants} className="glass-card p-6 neon-border mb-6">
         <div className="flex items-start justify-between mb-6">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Current Balance</p>
@@ -216,14 +258,14 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
               className="progress-neon-fill"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, ease: 'easeOut' }}
+              transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
             />
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Chart Placeholder */}
-      <div className="glass-card p-6 mb-6">
+      {/* Chart */}
+      <motion.div variants={itemVariants} className="glass-card p-6 mb-6">
         <h3 className="font-heading font-semibold text-lg text-foreground mb-4 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-success" />
           Balance History
@@ -235,9 +277,13 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
             const isLast = index === goal.progressHistory.length - 1;
 
             return (
-              <div
+              <motion.div
                 key={index}
                 className="flex-1 flex flex-col items-center gap-1"
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ ...springConfig, delay: 0.4 + index * 0.05 }}
+                style={{ originY: 1 }}
               >
                 <div
                   className={cn(
@@ -249,39 +295,42 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
                 <span className="text-[10px] text-muted-foreground">
                   {index + 1}
                 </span>
-              </div>
+              </motion.div>
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-card p-4 text-center">
+      <motion.div 
+        variants={containerVariants}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <motion.div variants={itemVariants} className="glass-card p-4 text-center">
           <p className="text-2xl font-heading font-bold neon-text-cyan">
             {progress.toFixed(0)}%
           </p>
           <p className="text-sm text-muted-foreground">Complete</p>
-        </div>
-        <div className="glass-card p-4 text-center">
+        </motion.div>
+        <motion.div variants={itemVariants} className="glass-card p-4 text-center">
           <p className="text-2xl font-heading font-bold text-foreground">
             {goal.progressHistory.length}
           </p>
           <p className="text-sm text-muted-foreground">Updates</p>
-        </div>
-        <div className="glass-card p-4 text-center">
+        </motion.div>
+        <motion.div variants={itemVariants} className="glass-card p-4 text-center">
           <p className="text-2xl font-heading font-bold text-success">
             +{((goal.currentBalance / goal.progressHistory[0] - 1) * 100).toFixed(0)}%
           </p>
           <p className="text-sm text-muted-foreground">Growth</p>
-        </div>
-        <div className="glass-card p-4 text-center">
+        </motion.div>
+        <motion.div variants={itemVariants} className="glass-card p-4 text-center">
           <p className="text-2xl font-heading font-bold text-foreground">
             {Math.ceil(remaining / (goal.currentBalance / goal.progressHistory.length))}
           </p>
           <p className="text-sm text-muted-foreground">Est. Weeks</p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };
@@ -302,17 +351,17 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
   return (
     <div className="max-w-3xl">
       {/* Header */}
-      <div className="mb-8">
+      <motion.div variants={itemVariants} className="mb-8">
         <span className="badge-success mb-2 inline-block">Action Goal</span>
         <h1 className="font-heading text-3xl lg:text-4xl font-bold text-foreground mb-2">
           {goal.title}
         </h1>
         <p className="text-lg text-muted-foreground">{goal.description}</p>
-      </div>
+      </motion.div>
 
       {/* Motivation Card */}
       {goal.motivation && (
-        <div className="glass-card p-6 neon-border mb-6">
+        <motion.div variants={itemVariants} className="glass-card p-6 neon-border mb-6">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-neon flex items-center justify-center flex-shrink-0">
               <span className="text-lg">💭</span>
@@ -324,11 +373,11 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
               <p className="text-muted-foreground">{goal.motivation}</p>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Progress Card */}
-      <div className="glass-card p-6 neon-border mb-6">
+      <motion.div variants={itemVariants} className="glass-card p-6 neon-border mb-6">
         <div className="flex items-center gap-6">
           {/* Circular Progress */}
           <div className="relative w-24 h-24">
@@ -352,7 +401,7 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
                 strokeDasharray={`${goal.completionPercentage}, 100`}
                 initial={{ strokeDasharray: '0, 100' }}
                 animate={{ strokeDasharray: `${goal.completionPercentage}, 100` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+                transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
               />
               <defs>
                 <linearGradient id="detailProgressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -377,10 +426,10 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Task List */}
-      <div className="glass-card p-6">
+      <motion.div variants={itemVariants} className="glass-card p-6">
         <h3 className="font-heading font-semibold text-lg text-foreground mb-4">
           Tasks
         </h3>
@@ -412,10 +461,15 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
         </form>
 
         {/* Tasks */}
-        <div className="space-y-2">
-          {goal.tasks.map((task) => (
+        <motion.div 
+          variants={containerVariants}
+          className="space-y-2"
+        >
+          {goal.tasks.map((task, index) => (
             <motion.button
               key={task.id}
+              variants={itemVariants}
+              custom={index}
               layout
               onClick={() => toggleTask(goal.id, task.id)}
               className={cn(
@@ -438,8 +492,8 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
               </span>
             </motion.button>
           ))}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

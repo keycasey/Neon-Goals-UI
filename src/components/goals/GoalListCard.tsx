@@ -20,7 +20,15 @@ interface GoalListCardProps {
   onDelete: (goalId: string) => void;
   onArchive?: (goalId: string) => void;
   onSync?: (goalId: string) => void;
+  animationIndex?: number;
 }
+
+// Spring animation config for bouncy feel
+const springConfig = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 25,
+};
 
 // Circular progress component
 const CircularProgress: React.FC<{ progress: number; size?: number; strokeWidth?: number }> = ({ 
@@ -116,7 +124,9 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
   onDelete,
   onArchive,
   onSync,
+  animationIndex = -1,
 }) => {
+  const shouldAnimate = animationIndex >= 0;
   const progress = getGoalProgress(goal);
   
   // Get next task or relevant info
@@ -155,10 +165,14 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      whileHover={{ x: 4 }}
+      initial={shouldAnimate ? { opacity: 0, scale: 0.95, y: 20 } : { opacity: 1, scale: 1, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.98, y: -10 }}
+      transition={{
+        ...springConfig,
+        delay: shouldAnimate ? animationIndex * 0.06 : 0,
+      }}
+      whileHover={{ x: 4, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
       className="glass-card hover-lift cursor-pointer group flex items-center gap-3 sm:gap-4 p-3 sm:p-4"
       onClick={() => onViewDetail(goal.id)}
     >

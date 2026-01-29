@@ -21,6 +21,9 @@ export interface ItemGoal extends Goal {
   retailerName: string;
   statusBadge: ItemStatusBadge;
   searchResults?: ProductSearchResult[];
+  // Card stacking support
+  stackId?: string; // Goals with same stackId are grouped together
+  stackOrder?: number; // Order within the stack (0 = front)
 }
 
 export interface ProductSearchResult {

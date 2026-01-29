@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { ItemGoalCard } from './ItemGoalCard';
+import { StackedItemGoalCard } from './StackedItemGoalCard';
 import { FinanceGoalCard } from './FinanceGoalCard';
 import { ActionGoalCard } from './ActionGoalCard';
 import { GoalListCard } from './GoalListCard';
@@ -15,6 +16,13 @@ interface GoalGridProps {
 
 // Module-level flag to track if initial animation has played
 let hasAnimatedOnce = false;
+
+// Spring animation config for consistent bouncy feel
+const springConfig = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 25,
+};
 
 export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
   const navigate = useNavigate();
@@ -53,19 +61,66 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     return false;
   });
 
+  // Group item goals by stackId
+  const { stackedGoals, individualGoals } = useMemo(() => {
+    const itemGoals = filteredGoals.filter(g => g.type === 'item') as ItemGoal[];
+    const otherGoals = filteredGoals.filter(g => g.type !== 'item');
+    
+    const stacks = new Map<string, ItemGoal[]>();
+    const individuals: ItemGoal[] = [];
+    
+    itemGoals.forEach(goal => {
+      if (goal.stackId) {
+        const existing = stacks.get(goal.stackId) || [];
+        stacks.set(goal.stackId, [...existing, goal]);
+      } else {
+        individuals.push(goal);
+      }
+    });
+    
+    return {
+      stackedGoals: Array.from(stacks.values()).filter(stack => stack.length > 1),
+      individualGoals: [
+        ...individuals,
+        ...Array.from(stacks.values()).filter(stack => stack.length === 1).flat(),
+        ...otherGoals,
+      ] as Goal[],
+    };
+  }, [filteredGoals]);
+
   if (filteredGoals.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[400px] text-center">
-        <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={springConfig}
+        className="flex flex-col items-center justify-center h-[400px] text-center"
+      >
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ ...springConfig, delay: 0.1 }}
+          className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mb-4"
+        >
           <span className="text-4xl">🎯</span>
-        </div>
-        <h3 className="font-heading text-xl font-semibold text-foreground mb-2">
+        </motion.div>
+        <motion.h3 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="font-heading text-xl font-semibold text-foreground mb-2"
+        >
           No goals yet
-        </h3>
-        <p className="text-muted-foreground max-w-sm">
+        </motion.h3>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-muted-foreground max-w-sm"
+        >
           Start a conversation with the AI assistant to create your first goal!
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     );
   }
 
@@ -74,7 +129,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     return (
       <div className={cn("flex flex-col gap-3", className)}>
         <AnimatePresence mode="popLayout">
-          {filteredGoals.map((goal) => (
+          {filteredGoals.map((goal, index) => (
             <GoalListCard
               key={goal.id}
               goal={goal}
@@ -82,6 +137,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
               onDelete={deleteGoal}
               onArchive={archiveGoal}
               onSync={syncFinanceGoal}
+              animationIndex={shouldAnimate ? index : -1}
             />
           ))}
         </AnimatePresence>
@@ -89,7 +145,9 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     );
   }
 
-  // Card View - grid of cards
+  // Card View - grid of cards with stacking support
+  let animationCounter = 0;
+  
   return (
     <div
       className={cn(
@@ -99,18 +157,37 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
       )}
     >
       <AnimatePresence mode="popLayout">
-        {filteredGoals.map((goal, index) => (
-          <GoalCardWrapper
-            key={goal.id}
-            goal={goal}
-            onViewDetail={handleViewDetail}
-            onDelete={deleteGoal}
-            onArchive={archiveGoal}
-            onSync={syncFinanceGoal}
-            onSearch={searchAndUpdateGoal}
-            animationIndex={shouldAnimate ? index : -1}
-          />
-        ))}
+        {/* Render stacked item goals */}
+        {stackedGoals.map((stack) => {
+          const idx = animationCounter++;
+          return (
+            <StackedItemGoalCard
+              key={`stack-${stack[0].stackId}`}
+              goals={stack}
+              onViewDetail={handleViewDetail}
+              onDelete={deleteGoal}
+              onArchive={archiveGoal}
+              animationIndex={shouldAnimate ? idx : -1}
+            />
+          );
+        })}
+        
+        {/* Render individual goals */}
+        {individualGoals.map((goal) => {
+          const idx = animationCounter++;
+          return (
+            <GoalCardWrapper
+              key={goal.id}
+              goal={goal}
+              onViewDetail={handleViewDetail}
+              onDelete={deleteGoal}
+              onArchive={archiveGoal}
+              onSync={syncFinanceGoal}
+              onSearch={searchAndUpdateGoal}
+              animationIndex={shouldAnimate ? idx : -1}
+            />
+          );
+        })}
       </AnimatePresence>
     </div>
   );
