@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
         <button
           onClick={toggleSidebar}
           className={cn(
-            "p-2 rounded-lg transition-colors lg:hidden",
+            "p-3 rounded-lg transition-colors lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center",
             "hover:bg-muted text-muted-foreground hover:text-foreground"
           )}
           aria-label="Toggle sidebar"
@@ -46,9 +46,11 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
 
         {/* Logo & Title - Aligned with sidebar content */}
         <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 rounded-lg bg-gradient-neon flex items-center justify-center">
-            <Target className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Neon Goals"
+            className="w-10 h-10 rounded-lg"
+          />
           <div className="hidden sm:block">
             <h1 className="font-heading font-bold text-lg gradient-text">Neon Goals</h1>
             <p className="text-xs text-muted-foreground">Crush your goals</p>
@@ -75,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
           <button
             onClick={() => setViewMode('list')}
             className={cn(
-              "p-2 rounded-md transition-all",
+              "p-3 rounded-md transition-all min-w-[44px] min-h-[44px] flex items-center justify-center",
               viewMode === 'list' 
                 ? "bg-primary text-primary-foreground" 
                 : "text-muted-foreground hover:text-foreground"
@@ -87,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
           <button
             onClick={() => setViewMode('card')}
             className={cn(
-              "p-2 rounded-md transition-all",
+              "p-3 rounded-md transition-all min-w-[44px] min-h-[44px] flex items-center justify-center",
               viewMode === 'card' 
                 ? "bg-primary text-primary-foreground" 
                 : "text-muted-foreground hover:text-foreground"
@@ -103,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
       <div className="flex items-center gap-3">
         {/* Notifications */}
         <button 
-          className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          className="relative p-3 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5" />
@@ -115,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
           <button
             onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
             className={cn(
-              "flex items-center gap-2 p-1 pr-3 rounded-full",
+              "flex items-center gap-2 p-2 pr-3 rounded-full min-h-[44px]",
               "bg-muted/30 hover:bg-muted/50 transition-colors border border-border/50",
               accountDropdownOpen && "bg-muted/50"
             )}

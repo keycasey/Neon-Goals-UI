@@ -55,7 +55,7 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
         {/* Delete Button */}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(goal.id); }}
-          className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-muted/50 text-muted-foreground hover:text-destructive hover:bg-muted"
+          className="p-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-muted/50 text-muted-foreground hover:text-destructive hover:bg-muted min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Delete"
         >
           <Trash2 className="w-4 h-4" />

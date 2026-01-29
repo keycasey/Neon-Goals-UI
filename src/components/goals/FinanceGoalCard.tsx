@@ -70,14 +70,14 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); onSync(goal.id); }}
-            className="p-1.5 rounded-lg bg-muted/50 text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+            className="p-3 rounded-lg bg-muted/50 text-muted-foreground hover:text-primary hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Sync"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(goal.id); }}
-            className="p-1.5 rounded-lg bg-muted/50 text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+            className="p-3 rounded-lg bg-muted/50 text-muted-foreground hover:text-destructive hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Delete"
           >
             <Trash2 className="w-4 h-4" />
@@ -143,6 +143,11 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/30">
         <p className="text-xs text-muted-foreground">
           Target: ${goal.targetBalance.toLocaleString()}
+          {goal.targetDate && (
+            <span className="ml-2">
+              by {new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          )}
         </p>
         <p className="text-xs text-muted-foreground">
           Synced {new Date(goal.lastSync).toLocaleDateString()}

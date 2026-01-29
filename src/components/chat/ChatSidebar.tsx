@@ -111,7 +111,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           scale: { duration: 0.2 }
         }}
         className={cn(
-          "hidden lg:flex fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full",
+          "hidden lg:flex fixed bottom-6 right-6 z-[70] w-14 h-14 rounded-full",
           "items-center justify-center",
           "hover:scale-110 cursor-pointer transition-transform",
           "shadow-lg",
@@ -149,7 +149,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           scale: { duration: 0.2 }
         }}
         className={cn(
-          "lg:hidden flex fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full",
+          "lg:hidden flex fixed bottom-6 right-6 z-[70] w-14 h-14 rounded-full",
           "bg-gradient-neon text-primary-foreground neon-glow-cyan",
           "items-center justify-center",
           "hover:scale-110 cursor-pointer transition-transform",
@@ -174,7 +174,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               stiffness: 260,
               damping: 25
             }}
-            className="lg:hidden fixed inset-0 z-50 flex flex-col bg-background"
+            className="lg:hidden fixed inset-0 z-[70] flex flex-col bg-background"
           >
             <ChatPanel
               mode={mode}

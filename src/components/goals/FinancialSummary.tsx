@@ -93,14 +93,14 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
           <div className="flex flex-col gap-1">
             <button
               onClick={syncAll}
-              className="flex items-center justify-center p-2 rounded-lg bg-muted/50 text-foreground hover:bg-muted transition-colors"
+              className="flex items-center justify-center p-2.5 rounded-lg bg-muted/50 text-foreground hover:bg-muted transition-colors min-w-[44px] min-h-[44px]"
               aria-label="Sync all accounts"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowAccounts(!showAccounts)}
-              className="flex items-center justify-center p-2 rounded-lg bg-muted/50 text-foreground hover:bg-muted transition-colors"
+              className="flex items-center justify-center p-2.5 rounded-lg bg-muted/50 text-foreground hover:bg-muted transition-colors min-w-[44px] min-h-[44px]"
               aria-label="Toggle accounts"
             >
               <Landmark className="w-4 h-4" />
