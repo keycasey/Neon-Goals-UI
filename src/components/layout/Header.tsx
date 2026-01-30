@@ -49,16 +49,16 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
           <img
             src="/logo.png"
             alt="Neon Goals"
-            className="w-10 h-10 rounded-lg"
+            className="w-16 h-16 rounded-lg"
           />
-          <div className="hidden sm:block">
+          <div className="hidden sm:block -ml-3">
             <h1 className="font-heading font-bold text-lg gradient-text">Neon Goals</h1>
             <p className="text-xs text-muted-foreground">Crush your goals</p>
           </div>
         </Link>
 
         {/* Search (Desktop) */}
-        <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border w-64 lg:w-80 lg:ml-[122px]">
+        <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border w-64 lg:w-80 lg:ml-[92px]">
           <Search className="w-4 h-4 text-muted-foreground" />
           <input
             type="text"
