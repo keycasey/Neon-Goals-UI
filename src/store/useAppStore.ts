@@ -17,7 +17,9 @@ import { goalsService } from '@/services/goalsService';
 import { usersService } from '@/services/usersService';
 import { chatsService } from '@/services/chatsService';
 import { aiService } from '@/services/aiService';
-import { aiGoalCreationService, aiGoalChatService } from '@/services/aiGoalCreationService';
+import { aiGoalCreationService } from '@/services/aiGoalCreationService';
+import { aiOverviewChatService } from '@/services/aiOverviewChatService';
+import { aiGoalChatService } from '@/services/aiGoalChatService';
 import { browserUseService } from '@/services/browserUseService';
 
 interface AppState {
@@ -67,6 +69,10 @@ interface AppState {
   // Task actions (for ActionGoals)
   toggleTask: (goalId: string, taskId: string) => void;
   addTask: (goalId: string, title: string) => void;
+
+  // Subgoal actions
+  createSubgoal: (data: any, parentGoalId: string) => Promise<void>;
+  updateGoalProgress: (goalId: string, data: any) => Promise<void>;
 
   // Finance actions
   syncFinanceGoal: (goalId: string) => void;
@@ -119,7 +125,7 @@ export const useAppStore = create<AppState>()(
           {
             id: '1',
             role: 'assistant',
-            content: "What would you like to work on today? I can help you with:\n\n• **Items** - Products you want to purchase\n• **Finances** - Money goals and tracking\n• **Actions** - Skills to learn or habits to build",
+            content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
             timestamp: new Date(),
           }
         ],
@@ -248,14 +254,10 @@ export const useAppStore = create<AppState>()(
             }));
 
             try {
-              // Stream the response
+              // Stream the response using new overview chat service
               let fullContent = '';
-              let shouldEnterGoalCreation = false;
 
-              for await (const chunk of aiService.chatStream({
-                messages: chatMessages,
-                mode: 'creation',
-              })) {
+              for await (const chunk of aiOverviewChatService.chatStream({ message: content })) {
                 fullContent += chunk.content;
 
                 // Update the message with accumulated content
@@ -271,11 +273,6 @@ export const useAppStore = create<AppState>()(
                 }));
 
                 if (chunk.done) {
-                  // Check if the final chunk contains the goal creation flag
-                  if (chunk.shouldEnterGoalCreation) {
-                    shouldEnterGoalCreation = true;
-                  }
-
                   set((state) => ({
                     creationChat: {
                       ...state.creationChat,
@@ -286,52 +283,9 @@ export const useAppStore = create<AppState>()(
                 }
               }
 
-              // Check if AI detected goal creation intent
-              if (shouldEnterGoalCreation && !get().isCreatingGoal) {
-                await aiGoalCreationService.startSession();
-                get().startGoalCreation();
-
-                // Re-send the user's message to the new OpenAI service
-                const response = await aiGoalCreationService.chat(content);
-
-                const newAssistantMessage: Message = {
-                  id: (Date.now() + 2).toString(),
-                  role: 'assistant',
-                  content: response.content,
-                  timestamp: new Date(),
-                  goalPreview: response.goalPreview,
-                  awaitingConfirmation: response.awaitingConfirmation,
-                };
-
-                set((state) => ({
-                  creationChat: {
-                    ...state.creationChat,
-                    messages: [...state.creationChat.messages, newAssistantMessage],
-                    isLoading: false,
-                  },
-                }));
-
-                // If goal was created, add it to the list and exit creation mode
-                if (response.goalCreated && response.goal) {
-                  const transformedGoal = response.goal;
-                  set((state) => ({
-                    goals: [...state.goals, transformedGoal],
-                    isCreatingGoal: false,
-                    creationChat: {
-                      messages: [{
-                        id: 'reset',
-                        role: 'assistant',
-                        content: "🎉 Your goal has been created! Ready to talk about your next goal!",
-                        timestamp: new Date(),
-                      }],
-                      isLoading: false,
-                    },
-                  }));
-                  await get().fetchGoals();
-                }
-
-                return; // Exit early since we handled the message with the new service
-              }
+              // Note: The new backend uses commands instead of shouldEnterGoalCreation flag
+              // Commands are handled through the CREATE_SUBGOAL command type
+              return; // Exit early since we handled the message with the new service
             } catch (streamError) {
               console.error('Streaming failed, falling back to regular chat:', streamError);
               // Fallback to regular chat
@@ -459,6 +413,19 @@ export const useAppStore = create<AppState>()(
               },
             },
           }));
+
+          // Execute commands if present
+          if (response.commands && response.commands.length > 0) {
+            for (const cmd of response.commands) {
+              if (cmd.type === 'CREATE_SUBGOAL') {
+                await get().createSubgoal(cmd.data, goalId);
+              } else if (cmd.type === 'UPDATE_PROGRESS') {
+                await get().updateGoalProgress(goalId, cmd.data);
+              }
+            }
+            // Refresh goals to show new subgoals
+            await get().fetchGoals();
+          }
         } catch (error) {
           console.error('AI goal chat error:', error);
           // Fallback to mock response on error
@@ -527,7 +494,47 @@ export const useAppStore = create<AppState>()(
           return goal;
         }),
       })),
-      
+
+      // Subgoal actions
+      createSubgoal: async (data, parentGoalId) => {
+        try {
+          const userId = get().user?.id;
+          if (!userId) throw new Error('User not authenticated');
+
+          // Create subgoal via API
+          const newSubgoal = await goalsService.create({
+            ...data,
+            parentGoalId,
+            userId,
+            status: 'active',
+          });
+
+          // Add to local state
+          set((state) => ({
+            goals: [...state.goals, newSubgoal],
+          }));
+
+          console.log('✅ Created subgoal:', newSubgoal.title);
+        } catch (error) {
+          console.error('Failed to create subgoal:', error);
+          throw error;
+        }
+      },
+
+      updateGoalProgress: async (goalId, data) => {
+        try {
+          // Update progress based on data structure
+          // This could update balance, tasks, etc.
+          console.log('Updating progress for goal:', goalId, data);
+
+          // For now, trigger a refetch to get updated data
+          await get().fetchGoals();
+        } catch (error) {
+          console.error('Failed to update progress:', error);
+          throw error;
+        }
+      },
+
       // Finance actions
       syncFinanceGoal: (goalId) => set((state) => ({
         goals: state.goals.map((goal) => {
@@ -618,7 +625,7 @@ export const useAppStore = create<AppState>()(
             messages: [{
               id: '1',
               role: 'assistant',
-              content: "What would you like to work on today? I can help you with:\n\n• **Items** - Products you want to purchase\n• **Finances** - Money goals and tracking\n• **Actions** - Skills to learn or habits to build",
+              content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
               timestamp: new Date(),
             }],
             isLoading: false,
@@ -758,7 +765,7 @@ export const useAppStore = create<AppState>()(
               {
                 id: '1',
                 role: 'assistant',
-                content: "What would you like to work on today? I can help you with:\n\n• **Items** - Products you want to purchase\n• **Finances** - Money goals and tracking\n• **Actions** - Skills to learn or habits to build",
+                content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
                 timestamp: new Date(),
               }
             ],

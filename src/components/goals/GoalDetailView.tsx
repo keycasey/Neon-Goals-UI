@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus } from 'lucide-react';
+import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import { SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
@@ -204,6 +204,9 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
             </div>
           </div>
         </motion.div>
+
+        {/* Subgoals Section */}
+        <SubgoalsSection goal={goal} />
       </div>
     </div>
   );
@@ -351,6 +354,9 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
           )}
         </motion.div>
       </motion.div>
+
+      {/* Subgoals Section */}
+      <SubgoalsSection goal={goal} />
     </div>
   );
 };
@@ -514,6 +520,54 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
           ))}
         </motion.div>
       </motion.div>
+
+      {/* Subgoals Section */}
+      <SubgoalsSection goal={goal} />
     </div>
+  );
+};
+
+// Subgoals Section - shared across all goal types
+const SubgoalsSection: React.FC<{ goal: Goal }> = ({ goal }) => {
+  if (!goal.subgoals || goal.subgoals.length === 0) {
+    return null;
+  }
+
+  return (
+    <motion.div variants={itemVariants} className="glass-card p-6 mt-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Layers className="w-5 h-5 text-primary" />
+        <h3 className="font-heading font-semibold text-lg text-foreground">
+          Subgoals ({goal.subgoals.length})
+        </h3>
+      </div>
+
+      <div className="space-y-3">
+        {goal.subgoals.map((subgoal, index) => (
+          <motion.div
+            key={subgoal.id}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/30 transition-all cursor-pointer"
+            onClick={() => window.location.href = `/goals/${subgoal.id}`}
+          >
+            <div className="w-2 h-2 rounded-full bg-primary/60" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-foreground">{subgoal.title}</span>
+              <p className="text-xs text-muted-foreground truncate">{subgoal.description}</p>
+            </div>
+            <span className={cn(
+              "text-xs px-2 py-1 rounded-full",
+              subgoal.type === 'item' && "badge-info",
+              subgoal.type === 'finance' && "badge-accent",
+              subgoal.type === 'action' && "badge-success"
+            )}>
+              {subgoal.type}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
   );
 };

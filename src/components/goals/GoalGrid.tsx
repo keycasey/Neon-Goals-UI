@@ -54,6 +54,8 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
 
   const filteredGoals = goals.filter(goal => {
     if (goal.status !== 'active') return false;
+    // Filter out subgoals from main display - they'll be shown under their parent
+    if (goal.parentGoalId) return false;
     if (activeCategory === 'all') return true;
     if (activeCategory === 'items') return goal.type === 'item';
     if (activeCategory === 'finances') return goal.type === 'finance';

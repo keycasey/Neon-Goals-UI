@@ -11,6 +11,8 @@ export interface Goal {
   updatedAt: Date;
   status: GoalStatus;
   targetDate?: Date;
+  parentGoalId?: string;  // ID of parent goal if this is a subgoal
+  subgoals?: Goal[];      // Array of subgoals (populated when fetching goals)
 }
 
 export interface ItemGoal extends Goal {
