@@ -395,7 +395,7 @@ export const useAppStore = create<AppState>()(
 
         try {
           // Use the new OpenAI-based goal chat service
-          const response = await aiGoalChatService.chat(goalId, content);
+          const response = await aiGoalChatService.chat(goalId, { message: content });
 
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -501,13 +501,22 @@ export const useAppStore = create<AppState>()(
           const userId = get().user?.id;
           if (!userId) throw new Error('User not authenticated');
 
-          // Create subgoal via API
-          const newSubgoal = await goalsService.create({
+          // Create subgoal via API based on type
+          let newSubgoal;
+          const goalData = {
             ...data,
             parentGoalId,
             userId,
             status: 'active',
-          });
+          };
+          
+          if (data.type === 'item') {
+            newSubgoal = await goalsService.createItemGoal(goalData);
+          } else if (data.type === 'finance') {
+            newSubgoal = await goalsService.createFinanceGoal(goalData);
+          } else {
+            newSubgoal = await goalsService.createActionGoal(goalData);
+          }
 
           // Add to local state
           set((state) => ({

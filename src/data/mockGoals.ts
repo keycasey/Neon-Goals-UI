@@ -1,4 +1,13 @@
 import type { ItemGoal, FinanceGoal, ActionGoal, ProductSearchResult } from '@/types/goals';
+import {
+  sonyHeadphonesCandidates,
+  macbookCandidates,
+  hermanMillerCandidates,
+  djiDroneCandidates,
+  longboardDeckCandidates,
+  longboardWheelsCandidates,
+  longboardTrucksCandidates,
+} from './candidateMockData';
 
 const mockProductSearchResults: ProductSearchResult[] = [
   {
@@ -49,6 +58,8 @@ export const mockItemGoals: ItemGoal[] = [
     retailerName: 'Amazon',
     statusBadge: 'price-drop',
     searchResults: mockProductSearchResults,
+    candidates: sonyHeadphonesCandidates,
+    selectedCandidateId: 'sony-1',
     createdAt: new Date('2025-12-01T10:00:00'),
     updatedAt: new Date('2025-12-26T15:30:00'),
   },
@@ -65,6 +76,8 @@ export const mockItemGoals: ItemGoal[] = [
     retailerName: 'Apple',
     statusBadge: 'in-stock',
     searchResults: [],
+    candidates: macbookCandidates,
+    selectedCandidateId: 'mac-1',
     createdAt: new Date('2025-11-15T08:00:00'),
     updatedAt: new Date('2025-12-20T10:00:00'),
   },
@@ -81,6 +94,7 @@ export const mockItemGoals: ItemGoal[] = [
     retailerName: 'Amazon',
     statusBadge: 'pending-search',
     searchResults: [],
+    candidates: hermanMillerCandidates,
     createdAt: new Date('2025-12-10T14:00:00'),
     updatedAt: new Date('2025-12-10T14:00:00'),
   },
@@ -97,6 +111,7 @@ export const mockItemGoals: ItemGoal[] = [
     retailerName: 'DJI Store',
     statusBadge: 'in-stock',
     searchResults: [],
+    candidates: djiDroneCandidates,
     createdAt: new Date('2025-12-05T09:00:00'),
     updatedAt: new Date('2025-12-22T11:00:00'),
   },
@@ -114,6 +129,7 @@ export const mockItemGoals: ItemGoal[] = [
     retailerName: 'Loaded Boards',
     statusBadge: 'in-stock',
     searchResults: [],
+    candidates: longboardDeckCandidates,
     stackId: 'longboard-build',
     stackOrder: 0,
     createdAt: new Date('2025-12-15T10:00:00'),
@@ -132,6 +148,7 @@ export const mockItemGoals: ItemGoal[] = [
     retailerName: 'Orangatang',
     statusBadge: 'price-drop',
     searchResults: [],
+    candidates: longboardWheelsCandidates,
     stackId: 'longboard-build',
     stackOrder: 1,
     createdAt: new Date('2025-12-15T10:05:00'),
@@ -150,6 +167,7 @@ export const mockItemGoals: ItemGoal[] = [
     retailerName: 'Paris Truck Co',
     statusBadge: 'in-stock',
     searchResults: [],
+    candidates: longboardTrucksCandidates,
     stackId: 'longboard-build',
     stackOrder: 2,
     createdAt: new Date('2025-12-15T10:10:00'),

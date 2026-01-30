@@ -24,6 +24,9 @@ export interface ItemGoal extends Goal {
   retailerName: string;
   statusBadge: ItemStatusBadge;
   searchResults?: ProductSearchResult[];
+  // Candidate stack for Tinder-style swiping
+  candidates?: ProductCandidate[];
+  selectedCandidateId?: string; // The "winner" candidate
   // Card stacking support
   stackId?: string; // Goals with same stackId are grouped together
   stackOrder?: number; // Order within the stack (0 = front)
@@ -36,6 +39,18 @@ export interface ProductSearchResult {
   retailer: string;
   url: string;
   image: string;
+}
+
+// Candidate for Tinder-style swiping in Item Goals
+export interface ProductCandidate extends ProductSearchResult {
+  condition?: 'new' | 'used' | 'refurbished';
+  rating?: number;
+  reviewCount?: number;
+  priceHistory?: number[]; // For showing price trends
+  savings?: number; // Compared to MSRP
+  inStock?: boolean;
+  estimatedDelivery?: string;
+  features?: string[];
 }
 
 export interface FinanceGoal extends Goal {

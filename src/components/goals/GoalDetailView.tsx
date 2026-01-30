@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus, Layers } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus, Layers, Scan, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import { SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
-import type { Goal, ItemGoal, FinanceGoal, ActionGoal } from '@/types/goals';
+import { CandidateStack } from './CandidateStack';
+import type { Goal, ItemGoal, FinanceGoal, ActionGoal, ProductCandidate } from '@/types/goals';
 
 interface GoalDetailViewProps {
   goal: Goal;
@@ -123,21 +124,95 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
   );
 };
 
-// Item Goal Detail
+// Item Goal Detail with Scanner Mode
 const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<ProductCandidate | null>(
+    goal.candidates?.find(c => c.id === goal.selectedCandidateId) || 
+    goal.candidates?.[0] || null
+  );
+  const { updateGoal } = useAppStore();
+  
+  const hasCandidates = goal.candidates && goal.candidates.length > 0;
+  const candidateCount = goal.candidates?.length || 0;
+  
+  const handleSelectCandidate = (candidate: ProductCandidate) => {
+    setSelectedCandidate(candidate);
+    // Update the goal with new selected candidate - cast to any for ItemGoal-specific fields
+    updateGoal(goal.id, {
+      bestPrice: candidate.price,
+      retailerName: candidate.retailer,
+      retailerUrl: candidate.url,
+      productImage: candidate.image,
+    } as any);
+    setIsScannerOpen(false);
+  };
+  
+  const handleDismissCandidate = (candidate: ProductCandidate) => {
+    console.log('Dismissed candidate:', candidate.name);
+  };
+
+  // Get the display image - selected candidate or goal image
+  const displayImage = selectedCandidate?.image || goal.productImage;
+  const displayPrice = selectedCandidate?.price || goal.bestPrice;
+  const displayRetailer = selectedCandidate?.retailer || goal.retailerName;
+
   return (
     <div className="max-w-3xl">
-      {/* Image */}
+      {/* Scanner Mode Overlay */}
+      <AnimatePresence>
+        {isScannerOpen && goal.candidates && (
+          <CandidateStack
+            candidates={goal.candidates}
+            onSelect={handleSelectCandidate}
+            onDismiss={handleDismissCandidate}
+            selectedId={selectedCandidate?.id}
+            onClose={() => setIsScannerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Hero Image with Stack Indicator */}
       <motion.div 
         variants={itemVariants}
-        className="relative h-64 lg:h-80 rounded-2xl overflow-hidden mb-6"
+        className="relative h-64 lg:h-80 rounded-2xl overflow-hidden mb-6 group cursor-pointer"
+        onClick={() => hasCandidates && setIsScannerOpen(true)}
       >
         <img
-          src={goal.productImage}
+          src={displayImage}
           alt={goal.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        
+        {/* Stack Counter Badge */}
+        {hasCandidates && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 rounded-xl glass-card neon-border cursor-pointer hover:scale-105 transition-transform"
+            onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); }}
+          >
+            <Scan className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">
+              1/{candidateCount} Candidates
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </motion.div>
+        )}
+        
+        {/* Scanner Mode Hint */}
+        {hasCandidates && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm text-sm text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Scan className="w-4 h-4" />
+            Click to enter Scanner Mode
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Content */}
@@ -156,25 +231,75 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
             <div>
               <p className="text-sm text-muted-foreground mb-1">Best Price</p>
               <p className="text-4xl font-heading font-bold neon-text-cyan">
-                ${goal.bestPrice.toLocaleString()}
+                ${displayPrice.toLocaleString()}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Available at {goal.retailerName}
+                Available at {displayRetailer}
               </p>
             </div>
-            <a
-              href={goal.retailerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-neon text-primary-foreground font-semibold transition-all hover:scale-105 neon-glow-cyan"
-            >
-              Purchase Now
-              <ExternalLink className="w-5 h-5" />
-            </a>
+            <div className="flex gap-3">
+              {hasCandidates && (
+                <button
+                  onClick={() => setIsScannerOpen(true)}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/50 text-foreground font-medium transition-all hover:bg-muted hover:scale-105"
+                >
+                  <Scan className="w-5 h-5" />
+                  Scan
+                </button>
+              )}
+              <a
+                href={selectedCandidate?.url || goal.retailerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-neon text-primary-foreground font-semibold transition-all hover:scale-105 neon-glow-cyan"
+              >
+                Purchase Now
+                <ExternalLink className="w-5 h-5" />
+              </a>
+            </div>
           </div>
         </motion.div>
 
-        {/* Specs */}
+        {/* Selected Candidate Details */}
+        {selectedCandidate && (
+          <motion.div variants={itemVariants} className="glass-card p-6">
+            <h3 className="font-heading font-semibold text-lg text-foreground mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              Selected Option
+            </h3>
+            <div className="flex items-start gap-4">
+              <img
+                src={selectedCandidate.image}
+                alt={selectedCandidate.name}
+                className="w-20 h-20 rounded-xl object-cover"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-foreground line-clamp-2">{selectedCandidate.name}</p>
+                <p className="text-sm text-muted-foreground mt-1">{selectedCandidate.retailer}</p>
+                {selectedCandidate.condition && (
+                  <span className={cn(
+                    "inline-block mt-2 px-2 py-0.5 rounded text-xs",
+                    selectedCandidate.condition === 'new' && "bg-success/20 text-success",
+                    selectedCandidate.condition === 'refurbished' && "bg-warning/20 text-warning",
+                    selectedCandidate.condition === 'used' && "bg-muted text-muted-foreground"
+                  )}>
+                    {selectedCandidate.condition.charAt(0).toUpperCase() + selectedCandidate.condition.slice(1)}
+                  </span>
+                )}
+              </div>
+              {selectedCandidate.rating && (
+                <div className="text-right">
+                  <p className="text-lg font-bold text-warning">★ {selectedCandidate.rating}</p>
+                  {selectedCandidate.reviewCount && (
+                    <p className="text-xs text-muted-foreground">{selectedCandidate.reviewCount.toLocaleString()} reviews</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Product Specs */}
         <motion.div variants={itemVariants} className="glass-card p-6">
           <h3 className="font-heading font-semibold text-lg text-foreground mb-4">
             Product Details
