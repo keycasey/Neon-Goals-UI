@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus, Layers, Scan, ChevronRight } from 'lucide-react';
+import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus, Layers, Scan, ChevronRight, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import { SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
-import { CandidateStack } from './CandidateStack';
+import { CandidateScanner } from './scanner/CandidateScanner';
 import type { Goal, ItemGoal, FinanceGoal, ActionGoal, ProductCandidate } from '@/types/goals';
 
 interface GoalDetailViewProps {
@@ -131,25 +131,34 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
     goal.candidates?.find(c => c.id === goal.selectedCandidateId) || 
     goal.candidates?.[0] || null
   );
+  const [hasNewCandidates, setHasNewCandidates] = useState(false);
   const { updateGoal } = useAppStore();
   
   const hasCandidates = goal.candidates && goal.candidates.length > 0;
   const candidateCount = goal.candidates?.length || 0;
   
+  // Simulate new candidate detection (in real app, this would come from scraper)
+  useEffect(() => {
+    // Random chance to show "new candidate" indicator for demo
+    const timer = setTimeout(() => {
+      if (Math.random() > 0.7 && hasCandidates) {
+        setHasNewCandidates(true);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [hasCandidates]);
+  
   const handleSelectCandidate = (candidate: ProductCandidate) => {
     setSelectedCandidate(candidate);
-    // Update the goal with new selected candidate - cast to any for ItemGoal-specific fields
+    setHasNewCandidates(false);
+    // Update the goal with new selected candidate
     updateGoal(goal.id, {
       bestPrice: candidate.price,
       retailerName: candidate.retailer,
       retailerUrl: candidate.url,
       productImage: candidate.image,
+      selectedCandidateId: candidate.id,
     } as any);
-    setIsScannerOpen(false);
-  };
-  
-  const handleDismissCandidate = (candidate: ProductCandidate) => {
-    console.log('Dismissed candidate:', candidate.name);
   };
 
   // Get the display image - selected candidate or goal image
@@ -159,14 +168,13 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
 
   return (
     <div className="max-w-3xl">
-      {/* Scanner Mode Overlay */}
+      {/* Scanner Mode Overlay - Using new Digital Workbench */}
       <AnimatePresence>
         {isScannerOpen && goal.candidates && (
-          <CandidateStack
+          <CandidateScanner
             candidates={goal.candidates}
+            selectedCandidateId={selectedCandidate?.id}
             onSelect={handleSelectCandidate}
-            onDismiss={handleDismissCandidate}
-            selectedId={selectedCandidate?.id}
             onClose={() => setIsScannerOpen(false)}
           />
         )}
@@ -185,6 +193,30 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         
+        {/* New Candidate Alert - pulsing magenta indicator */}
+        {hasNewCandidates && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-4 left-4"
+          >
+            <motion.div
+              animate={{
+                boxShadow: [
+                  '0 0 0 0 rgba(255, 0, 255, 0.7)',
+                  '0 0 0 10px rgba(255, 0, 255, 0)',
+                ],
+              }}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/90 text-accent-foreground cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); setHasNewCandidates(false); }}
+            >
+              <AlertCircle className="w-4 h-4 animate-pulse" />
+              <span className="text-xs font-bold">NEW CANDIDATE</span>
+            </motion.div>
+          </motion.div>
+        )}
+        
         {/* Stack Counter Badge */}
         {hasCandidates && (
           <motion.div 
@@ -195,7 +227,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
           >
             <Scan className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-foreground">
-              1/{candidateCount} Candidates
+              {candidateCount} Candidates
             </span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </motion.div>
@@ -209,8 +241,8 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
             transition={{ delay: 0.5 }}
             className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm text-sm text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <Scan className="w-4 h-4" />
-            Click to enter Scanner Mode
+            <Layers className="w-4 h-4" />
+            Click to open Digital Workbench
           </motion.div>
         )}
       </motion.div>

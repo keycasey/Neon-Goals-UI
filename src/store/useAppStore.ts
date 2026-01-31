@@ -29,6 +29,7 @@ interface AppState {
   sidebarOpen: boolean;
   activeCategory: GoalCategory;
   isChatMinimized: boolean;
+  isDemoMode: boolean;
 
   // Data
   goals: Goal[];
@@ -52,6 +53,7 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void;
   setActiveCategory: (category: GoalCategory) => void;
   toggleChatMinimized: () => void;
+  setDemoMode: (isDemoMode: boolean) => void;
 
   // Goal CRUD (local state updates - API calls happen separately)
   addGoal: (goal: Goal) => void;
@@ -112,6 +114,7 @@ export const useAppStore = create<AppState>()(
       sidebarOpen: false, // Start closed; desktop opens via useEffect in Index.tsx
       activeCategory: 'all',
       isChatMinimized: false,
+      isDemoMode: false,
 
       goals: [],
       user: null, // Start with no user - requires login
@@ -147,6 +150,8 @@ export const useAppStore = create<AppState>()(
       setActiveCategory: (category) => set({ activeCategory: category }),
 
       toggleChatMinimized: () => set((state) => ({ isChatMinimized: !state.isChatMinimized })),
+
+      setDemoMode: (isDemoMode) => set({ isDemoMode }),
 
       // Goal CRUD (local state updates)
       addGoal: (goal) => set((state) => ({

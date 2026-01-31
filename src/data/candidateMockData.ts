@@ -62,6 +62,21 @@ export const sonyHeadphonesCandidates: ProductCandidate[] = [
     estimatedDelivery: '2-4 weeks',
     features: ['International version', 'Free shipping', 'Lowest price'],
   },
+  {
+    id: 'sony-5',
+    name: 'Sony WH-1000XM5 - Open Box',
+    price: 245.00,
+    retailer: 'Woot',
+    url: 'https://woot.com/sony-xm5',
+    image: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800',
+    condition: 'refurbished',
+    rating: 4.6,
+    reviewCount: 234,
+    savings: 103,
+    inStock: true,
+    estimatedDelivery: '3-5 days',
+    features: ['Open box', 'Amazon backed', 'Limited quantity'],
+  },
 ];
 
 // MacBook Candidates
