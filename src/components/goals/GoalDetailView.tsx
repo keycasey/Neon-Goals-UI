@@ -299,7 +299,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
         className="relative h-64 lg:h-80 rounded-2xl overflow-hidden mb-6 group cursor-pointer"
         onClick={() => hasCandidates && setIsScannerOpen(true)}
       >
-        {displayImage?.includes('unsplash.com') ? (
+        {!displayImage || displayImage?.includes('unsplash.com') ? (
           <ScannerPlaceholder
             status={
               goal.statusBadge === 'pending_search' || goal.statusBadge === 'pending-search'
