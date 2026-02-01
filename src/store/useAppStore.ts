@@ -31,13 +31,12 @@ interface AppState {
   sidebarOpen: boolean;
   activeCategory: GoalCategory;
   isChatMinimized: boolean;
-  isDemoMode: boolean;
+  isDemoMode: boolean; // Demo mode flag - offline mode with mock data
 
   // Data
   goals: Goal[];
   user: User | null;
   settings: Settings;
-  isDemoMode: boolean; // Demo mode flag - offline mode with mock data
 
   // Chat state
   creationChat: ChatState;
@@ -57,7 +56,6 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void;
   setActiveCategory: (category: GoalCategory) => void;
   toggleChatMinimized: () => void;
-  setDemoMode: (isDemoMode: boolean) => void;
 
   // Goal CRUD (local state updates - API calls happen separately)
   addGoal: (goal: Goal) => void;
@@ -128,7 +126,6 @@ export const useAppStore = create<AppState>()(
       goals: [],
       user: null, // Start with no user - requires login
       settings: defaultSettings,
-      isDemoMode: false, // Demo mode flag - disabled by default
       isLoading: false,
       error: null,
       isCreatingGoal: false,
@@ -375,23 +372,23 @@ export const useAppStore = create<AppState>()(
 
                   // Update the message with accumulated content and metadata
                   set((state) => ({
-                    creationChat: {
-                      ...state.creationChat,
-                      messages: state.creationChat.messages.map(msg =>
-                        msg.id === assistantMessageId
-                          ? {
-                              ...msg,
-                              content: fullContent,
-                              ...(chunk.done && {
-                                goalPreview: chunk.goalPreview,
-                                awaitingConfirmation: chunk.awaitingConfirmation,
-                              }),
-                            }
-                          : msg
-                      ),
-                      ...(chunk.done && { isLoading: false }),
-                    },
-                  }));
+                      creationChat: {
+                        ...state.creationChat,
+                        messages: state.creationChat.messages.map(msg =>
+                          msg.id === assistantMessageId
+                            ? {
+                                ...msg,
+                                content: fullContent,
+                                ...(chunk.done && (chunk as any).goalPreview && {
+                                  goalPreview: (chunk as any).goalPreview,
+                                  awaitingConfirmation: (chunk as any).awaitingConfirmation,
+                                }),
+                              }
+                            : msg
+                        ),
+                        ...(chunk.done && { isLoading: false }),
+                      },
+                    }));
                 }
                 // The generator returns the full response (for real service)
                 return await streamResult.next().then(r => r.value);
@@ -430,7 +427,7 @@ export const useAppStore = create<AppState>()(
               const chatResponse = isDemo
                 ? await mockOverviewChatService.chat(content)
                 : await aiService.chat({
-                    messages: state.creationChat.messages,
+                    messages: get().creationChat.messages,
                     mode: 'creation',
                   });
 
@@ -447,7 +444,7 @@ export const useAppStore = create<AppState>()(
               }));
 
               // Check if AI detected goal creation intent (skip in demo mode)
-              if (!isDemo && chatResponse.shouldEnterGoalCreation && !get().isCreatingGoal) {
+              if (!isDemo && (chatResponse as any).shouldEnterGoalCreation && !get().isCreatingGoal) {
                 await aiGoalCreationService.startSession();
                 get().startGoalCreation();
 
@@ -538,8 +535,10 @@ export const useAppStore = create<AppState>()(
           const isDemo = get().isDemoMode;
           const chatService = isDemo ? mockGoalChatService : aiGoalChatService;
 
-          // Use the appropriate goal chat service
-          const response = await chatService.chat(goalId, { message: content });
+          // Use the appropriate goal chat service - mockGoalChatService takes (goalId, message) while aiGoalChatService takes (goalId, {message})
+          const response = isDemo
+            ? await mockGoalChatService.chat(goalId, content)
+            : await aiGoalChatService.chat(goalId, { message: content });
 
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -758,7 +757,7 @@ export const useAppStore = create<AppState>()(
           // Revert status on error
           set((state) => ({
             goals: state.goals.map((goal) =>
-              goal.id === goalId && goal.statusBadge === 'pending_search'
+              goal.id === goalId && (goal as any).statusBadge === 'pending_search'
                 ? { ...goal, statusBadge: 'in_stock' }
                 : goal
             ),
@@ -779,8 +778,6 @@ export const useAppStore = create<AppState>()(
       updateSettings: (newSettings) => set((state) => ({
         settings: { ...state.settings, ...newSettings },
       })),
-
-      setDemoMode: (enabled) => set({ isDemoMode: enabled }),
 
       // Pending commands actions
       cancelPendingCommands: async (reason = 'Changed my mind') => {
