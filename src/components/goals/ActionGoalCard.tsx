@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, CheckCircle2, Circle, ChevronDown, ChevronUp, ListTodo } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getProgressBreakdown, isFullyComplete } from '@/lib/progressCalculator';
 import type { ActionGoal } from '@/types/goals';
 
 interface ActionGoalCardProps {
@@ -25,9 +26,13 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const subgoalsRef = useRef<HTMLDivElement>(null);
-  const completedTasks = goal.tasks.filter(t => t.completed).length;
-  const totalTasks = goal.tasks.length;
-  const progress = goal.completionPercentage;
+  
+  // Use Modular Assembly progress calculation
+  const progressBreakdown = getProgressBreakdown(goal);
+  const isComplete = isFullyComplete(goal);
+  const progress = progressBreakdown.totalProgress;
+  const completedTasks = progressBreakdown.localTasksCompleted;
+  const totalTasks = progressBreakdown.localTasksTotal;
   const shouldAnimate = animationIndex >= 0;
   const subgoals = goal.subgoals || [];
 
@@ -60,11 +65,14 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
       }}
       className="relative"
     >
-      {/* Main Card */}
+      {/* Main Card - with supercritical glow when 100% complete */}
       <motion.div
         whileHover={!isExpanded ? { y: -4, scale: 1.02, transition: springConfig } : undefined}
         whileTap={!isExpanded ? { scale: 0.98 } : undefined}
-        className="glass-card hover-lift cursor-pointer group p-5 relative z-10"
+        className={cn(
+          "glass-card hover-lift cursor-pointer group p-5 relative z-10",
+          isComplete && "supercritical-glow border-white/30"
+        )}
         onClick={() => !isExpanded && onViewDetail(goal.id)}
       >
         {/* Header */}
@@ -122,13 +130,16 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
               cy="18"
               r="16"
               fill="none"
-              stroke="url(#progressGradient)"
+              stroke={isComplete ? "white" : "url(#progressGradient)"}
               strokeWidth="3"
               strokeLinecap="round"
               strokeDasharray={`${progress}, 100`}
               initial={{ strokeDasharray: '0, 100' }}
               animate={{ strokeDasharray: `${progress}, 100` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
+              style={{
+                filter: isComplete ? 'drop-shadow(0 0 8px white)' : undefined,
+              }}
             />
             <defs>
               <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -138,38 +149,69 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
             </defs>
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-heading font-bold text-foreground text-sm">
+            <span className={cn(
+              "font-heading font-bold text-sm",
+              isComplete ? "text-white" : "text-foreground"
+            )}
+            style={{
+              textShadow: isComplete ? '0 0 8px white' : undefined,
+            }}>
               {progress}%
             </span>
           </div>
         </div>
 
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={cn(
-              "text-sm font-medium",
-              progress >= 100 ? "neon-text-cyan" : "text-foreground"
-            )}>
-              {completedTasks} of {totalTasks} tasks
-            </span>
+          {/* Modular Assembly Stats */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-[var(--neon-cyan)]" />
+              <span className={cn(
+                "text-sm font-medium",
+                isComplete ? "text-white" : "text-foreground"
+              )}>
+                {completedTasks}/{totalTasks} tasks
+              </span>
+            </div>
+            {subgoals.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-[var(--neon-magenta)]" />
+                <span className="text-sm text-muted-foreground">
+                  {progressBreakdown.subgoalsCompleted}/{progressBreakdown.subgoalsTotal} subgoals
+                </span>
+              </div>
+            )}
           </div>
           
-          {/* Task Dots */}
+          {/* Task & Subgoal Dots */}
           <div className="flex flex-wrap gap-1.5">
-            {goal.tasks.slice(0, 8).map((task, index) => (
+            {/* Task dots - cyan */}
+            {goal.tasks.slice(0, 6).map((task) => (
               <div
                 key={task.id}
                 className={cn(
                   "w-2.5 h-2.5 rounded-full transition-all",
                   task.completed 
                     ? "bg-success neon-glow-lime" 
-                    : "bg-muted-foreground/30"
+                    : "bg-[var(--neon-cyan)]/30"
                 )}
               />
             ))}
-            {goal.tasks.length > 8 && (
+            {/* Subgoal dots - magenta */}
+            {subgoals.slice(0, 4).map((subgoal) => (
+              <div
+                key={subgoal.id}
+                className={cn(
+                  "w-2.5 h-2.5 rounded-sm transition-all",
+                  subgoal.status === 'completed' 
+                    ? "bg-success neon-glow-lime" 
+                    : "bg-[var(--neon-magenta)]/30"
+                )}
+              />
+            ))}
+            {(goal.tasks.length > 6 || subgoals.length > 4) && (
               <span className="text-xs text-muted-foreground ml-1">
-                +{goal.tasks.length - 8}
+                +{Math.max(0, goal.tasks.length - 6) + Math.max(0, subgoals.length - 4)}
               </span>
             )}
           </div>
