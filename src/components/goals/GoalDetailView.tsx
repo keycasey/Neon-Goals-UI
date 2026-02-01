@@ -58,7 +58,7 @@ const itemVariants = {
 
 export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose }) => {
   const [isDesktop, setIsDesktop] = useState(false);
-  const { isChatMinimized, updateGoal, searchAndUpdateGoal } = useAppStore();
+  const { isChatMinimized, updateGoal } = useAppStore();
 
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
@@ -162,7 +162,7 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
 
 // Item Goal Detail with Scanner Mode
 const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
-  const { isChatMinimized, updateGoal } = useAppStore();
+  const { isChatMinimized, updateGoal, searchAndUpdateGoal } = useAppStore();
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<ProductCandidate | null>(
     goal.candidates?.find(c => c.id === goal.selectedCandidateId) ||

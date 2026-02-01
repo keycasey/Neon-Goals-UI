@@ -6,7 +6,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Types for mock responses
 export interface MockChatCommand {
-  type: 'CREATE_SUBGOAL' | 'UPDATE_PROGRESS';
+  type: 'CREATE_GOAL' | 'CREATE_SUBGOAL' | 'UPDATE_PROGRESS';
   data: any;
 }
 
@@ -24,7 +24,7 @@ export interface MockStreamChunk {
 }
 
 // Get a mock subgoal from existing mockGoals data
-const getMockSubgoal = (index: number): Partial<Goal> => {
+const getMockSubgoal = (index: number): Record<string, any> => {
   const baseGoal = mockGoals[index % mockGoals.length];
 
   // Return appropriate fields based on goal type
@@ -227,7 +227,10 @@ const matchResponse = (message: string): MockChatResponse => {
   // Check each scenario for keyword matches
   for (const scenario of overviewScenarios) {
     if (scenario.keywords.some(keyword => lowerMessage.includes(keyword))) {
-      return scenario;
+      return {
+        content: scenario.response,
+        commands: scenario.commands,
+      };
     }
   }
 

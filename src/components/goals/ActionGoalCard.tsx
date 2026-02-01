@@ -248,18 +248,18 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
                 </div>
 
                 {/* Subgoal Tasks Progress (if it's an action goal subgoal) */}
-                {subgoal.type === 'action' && 'tasks' in subgoal && (
+                {subgoal.type === 'action' && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-neon"
                         initial={{ width: 0 }}
-                        animate={{ width: `${subgoal.completionPercentage || 0}%` }}
+                        animate={{ width: `${(subgoal as ActionGoal).completionPercentage || 0}%` }}
                         transition={{ duration: 0.5 }}
                       />
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {subgoal.tasks?.filter((t: any) => t.completed).length || 0}/{subgoal.tasks?.length || 0}
+                      {(subgoal as ActionGoal).tasks?.filter(t => t.completed).length || 0}/{(subgoal as ActionGoal).tasks?.length || 0}
                     </span>
                   </div>
                 )}
