@@ -7,6 +7,11 @@ import { SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
 import { CandidateScanner } from './scanner/CandidateScanner';
 import { ScannerPlaceholder } from './ScannerPlaceholder';
 import { ScrapeStatusCard } from './ScrapeStatusCard';
+import { ObjectiveList } from './ObjectiveList';
+import { CompletionBurst } from './CompletionBurst';
+import { NestedProgressBar } from './NestedProgressBar';
+import { ComponentMatrix } from './ComponentMatrix';
+import { getProgressBreakdown, isFullyComplete } from '@/lib/progressCalculator';
 import type { Goal, ItemGoal, FinanceGoal, ActionGoal, ProductCandidate } from '@/types/goals';
 
 interface GoalDetailViewProps {
@@ -525,17 +530,37 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
           />
         </motion.div>
 
-        {/* Subgoals Section */}
-        <SubgoalsSection goal={goal} />
+        {/* Component Matrix for Build View (Item subgoals) */}
+        {goal.subgoals && goal.subgoals.length > 0 && (
+          <motion.div variants={itemVariants} className="glass-card p-6">
+            <ComponentMatrix
+              parentGoal={goal}
+              subgoals={goal.subgoals}
+              onSubgoalClick={(subgoalId) => {
+                // Find the subgoal and open scanner if it's an item goal with candidates
+                const subgoal = goal.subgoals?.find(s => s.id === subgoalId) as ItemGoal | undefined;
+                if (subgoal && subgoal.type === 'item' && subgoal.candidates && subgoal.candidates.length > 0) {
+                  // Could open scanner mode here - for now, navigate to the subgoal
+                  useAppStore.getState().selectGoal(subgoalId);
+                } else {
+                  useAppStore.getState().selectGoal(subgoalId);
+                }
+              }}
+            />
+          </motion.div>
+        )}
       </div>
     </div>
   );
 };
 
-// Finance Goal Detail
+// Finance Goal Detail with Nested Progress Bars
 const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
+  const { selectGoal } = useAppStore();
   const progress = Math.min((goal.currentBalance / goal.targetBalance) * 100, 100);
   const remaining = goal.targetBalance - goal.currentBalance;
+  const isComplete = progress >= 100;
+  const subgoals = goal.subgoals || [];
 
   // Calculate weeks to target date
   const weeksToTarget = goal.targetDate
@@ -549,6 +574,11 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
   const estWeeksAtCurrentRate = avgSavingsPerWeek > 0
     ? Math.ceil(remaining / avgSavingsPerWeek)
     : null;
+
+  // Navigate to subgoal detail
+  const handleSubgoalClick = (subgoalId: string) => {
+    selectGoal(subgoalId);
+  };
 
   return (
     <div className="max-w-3xl">
@@ -566,38 +596,38 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
         </div>
       </motion.div>
 
-      {/* Balance Card */}
-      <motion.div variants={itemVariants} className="glass-card p-6 neon-border mb-6">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Current Balance</p>
-            <p className="text-5xl font-heading font-bold neon-text-magenta">
-              ${goal.currentBalance.toLocaleString()}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground mb-1">Target</p>
-            <p className="text-2xl font-heading font-semibold text-foreground">
-              ${goal.targetBalance.toLocaleString()}
-            </p>
-          </div>
-        </div>
+      {/* Balance Card with Completion Burst */}
+      <motion.div variants={itemVariants}>
+        <CompletionBurst isComplete={isComplete}>
+          <div className="glass-card p-6 neon-border mb-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Current Balance</p>
+                <p className={cn(
+                  "text-5xl font-heading font-bold",
+                  isComplete ? "text-white" : "neon-text-magenta"
+                )}
+                style={{
+                  textShadow: isComplete ? '0 0 20px white, 0 0 40px white' : undefined,
+                }}>
+                  ${goal.currentBalance.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground mb-1">Target</p>
+                <p className="text-2xl font-heading font-semibold text-foreground">
+                  ${goal.targetBalance.toLocaleString()}
+                </p>
+              </div>
+            </div>
 
-        {/* Progress */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-            <span>${remaining.toLocaleString()} remaining</span>
-            <span>{progress.toFixed(1)}%</span>
-          </div>
-          <div className="progress-neon h-3">
-            <motion.div
-              className="progress-neon-fill"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
+            {/* Nested Progress Bar with subgoals */}
+            <NestedProgressBar
+              parentGoal={goal}
+              subgoals={subgoals}
             />
           </div>
-        </div>
+        </CompletionBurst>
       </motion.div>
 
       {/* Chart */}
@@ -643,7 +673,13 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
         <motion.div variants={itemVariants} className="glass-card p-4 text-center">
-          <p className="text-2xl font-heading font-bold neon-text-cyan">
+          <p className={cn(
+            "text-2xl font-heading font-bold",
+            isComplete ? "text-white" : "neon-text-cyan"
+          )}
+          style={{
+            textShadow: isComplete ? '0 0 10px white' : undefined,
+          }}>
             {progress.toFixed(0)}%
           </p>
           <p className="text-sm text-muted-foreground">Complete</p>
@@ -675,21 +711,46 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
         </motion.div>
       </motion.div>
 
-      {/* Subgoals Section */}
-      <SubgoalsSection goal={goal} />
+      {/* Non-finance subgoals section */}
+      {subgoals.filter(s => s.type !== 'finance').length > 0 && (
+        <motion.div variants={itemVariants} className="glass-card p-6 mt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Layers className="w-5 h-5 text-primary" />
+            <h3 className="font-heading font-semibold text-lg text-foreground">
+              Related Goals
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {subgoals.filter(s => s.type !== 'finance').map((subgoal) => (
+              <motion.button
+                key={subgoal.id}
+                onClick={() => handleSubgoalClick(subgoal.id)}
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-[hsl(var(--neon-magenta)/0.3)] hover:border-[hsl(var(--neon-magenta)/0.6)] transition-all text-left"
+              >
+                <div className="w-1 h-8 rounded-full bg-[var(--neon-magenta)]" />
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-foreground">{subgoal.title}</span>
+                  <span className="text-xs text-muted-foreground block">{subgoal.description}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">{subgoal.type}</span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };
 
-// Action Goal Detail
+// Action Goal Detail with Modular Assembly System
 const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
-  const { toggleTask, addTask } = useAppStore();
+  const { toggleTask, addTask, selectGoal } = useAppStore();
   const [newTask, setNewTask] = React.useState('');
 
-  // Combine tasks and subgoals into a unified list
-  // Subgoals are shown as clickable items that navigate to their detail view
+  // Calculate progress using Modular Assembly logic
+  const progressBreakdown = getProgressBreakdown(goal);
+  const isComplete = isFullyComplete(goal);
   const subgoals = goal.subgoals || [];
-  console.log('[ActionGoalDetail] goal.subgoals:', goal.subgoals, 'subgoals:', subgoals);
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -699,9 +760,9 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
     }
   };
 
-  // Navigate to subgoal detail
+  // Navigate to subgoal detail with drill-down animation
   const handleSubgoalClick = (subgoalId: string) => {
-    window.location.href = `/goals/${subgoalId}`;
+    selectGoal(subgoalId);
   };
 
   return (
@@ -732,66 +793,105 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
         </motion.div>
       )}
 
-      {/* Progress Card */}
-      <motion.div variants={itemVariants} className="glass-card p-6 neon-border mb-6">
-        <div className="flex items-center gap-6">
-          {/* Circular Progress */}
-          <div className="relative w-24 h-24">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-              <circle
-                cx="18"
-                cy="18"
-                r="16"
-                fill="none"
-                stroke="hsl(var(--muted))"
-                strokeWidth="3"
-              />
-              <motion.circle
-                cx="18"
-                cy="18"
-                r="16"
-                fill="none"
-                stroke="url(#detailProgressGradient)"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={`${goal.completionPercentage}, 100`}
-                initial={{ strokeDasharray: '0, 100' }}
-                animate={{ strokeDasharray: `${goal.completionPercentage}, 100` }}
-                transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
-              />
-              <defs>
-                <linearGradient id="detailProgressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="var(--neon-lime)" />
-                  <stop offset="100%" stopColor="var(--neon-cyan)" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="font-heading font-bold text-2xl text-foreground">
-                {goal.completionPercentage}%
-              </span>
+      {/* Progress Card with Completion Burst */}
+      <motion.div variants={itemVariants}>
+        <CompletionBurst isComplete={isComplete}>
+          <div className="glass-card p-6 neon-border mb-6">
+            <div className="flex items-center gap-6">
+              {/* Circular Progress with Modular Assembly */}
+              <div className="relative w-24 h-24">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    stroke="hsl(var(--muted))"
+                    strokeWidth="3"
+                  />
+                  {/* Cyan arc for tasks */}
+                  <motion.circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    stroke={isComplete ? "white" : "url(#detailProgressGradient)"}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={`${progressBreakdown.totalProgress}, 100`}
+                    initial={{ strokeDasharray: '0, 100' }}
+                    animate={{ strokeDasharray: `${progressBreakdown.totalProgress}, 100` }}
+                    transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
+                    style={{
+                      filter: isComplete ? 'drop-shadow(0 0 10px white)' : undefined,
+                    }}
+                  />
+                  <defs>
+                    <linearGradient id="detailProgressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="var(--neon-lime)" />
+                      <stop offset="100%" stopColor="var(--neon-cyan)" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={cn(
+                    "font-heading font-bold text-2xl",
+                    isComplete ? "text-white" : "text-foreground"
+                  )}
+                  style={{
+                    textShadow: isComplete ? '0 0 10px white' : undefined,
+                  }}>
+                    {progressBreakdown.totalProgress}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex-1">
+                {/* Modular Assembly Stats */}
+                <p className="text-2xl font-heading font-semibold text-foreground mb-2">
+                  Command Center
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[var(--neon-cyan)]" />
+                    <span className="text-muted-foreground">
+                      Tasks: <span className="text-foreground font-medium">
+                        {progressBreakdown.localTasksCompleted}/{progressBreakdown.localTasksTotal}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[var(--neon-magenta)]" />
+                    <span className="text-muted-foreground">
+                      Subgoals: <span className="text-foreground font-medium">
+                        {progressBreakdown.subgoalsCompleted}/{progressBreakdown.subgoalsTotal}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {isComplete 
+                    ? "✨ All modules powered up!" 
+                    : `${progressBreakdown.localTasksTotal + progressBreakdown.subgoalsTotal - progressBreakdown.localTasksCompleted - progressBreakdown.subgoalsCompleted} objectives remaining`
+                  }
+                </p>
+              </div>
             </div>
           </div>
-
-          <div className="flex-1">
-            <p className="text-2xl font-heading font-semibold text-foreground mb-1">
-              {goal.tasks.filter(t => t.completed).length} of {goal.tasks.length} tasks
-            </p>
-            <p className="text-muted-foreground">
-              {goal.tasks.length - goal.tasks.filter(t => t.completed).length} remaining
-            </p>
-          </div>
-        </div>
+        </CompletionBurst>
       </motion.div>
 
-      {/* Task List */}
+      {/* Unified Objective List */}
       <motion.div variants={itemVariants} className="glass-card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-heading font-semibold text-lg text-foreground">
-            Tasks & Subgoals
+          <h3 className="font-heading font-semibold text-lg text-foreground flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-magenta)] flex items-center justify-center">
+              <Layers className="w-3.5 h-3.5 text-background" />
+            </span>
+            Objective Stack
           </h3>
           <span className="text-sm text-muted-foreground">
-            {goal.tasks.length} tasks, {subgoals.length} subgoals
+            {progressBreakdown.localTasksTotal} tasks • {progressBreakdown.subgoalsTotal} subgoals
           </span>
         </div>
 
@@ -821,93 +921,14 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
           </button>
         </form>
 
-        {/* Tasks */}
-        <motion.div
-          variants={containerVariants}
-          className="space-y-2"
-        >
-          {goal.tasks.map((task, index) => (
-            <motion.button
-              key={task.id}
-              variants={itemVariants}
-              custom={index}
-              layout
-              onClick={() => toggleTask(goal.id, task.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
-                task.completed
-                  ? "bg-success/10 border border-success/30"
-                  : "bg-muted/30 border border-border/30 hover:border-primary/30"
-              )}
-            >
-              {task.completed ? (
-                <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
-              ) : (
-                <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-              )}
-              <span className={cn(
-                "flex-1 text-sm",
-                task.completed ? "text-muted-foreground line-through" : "text-foreground"
-              )}>
-                {task.title}
-              </span>
-            </motion.button>
-          ))}
-
-          {/* Subgoals as tasks */}
-          {subgoals.map((subgoal, index) => {
-            // Calculate completion for action subgoals
-            const isActionSubgoal = subgoal.type === 'action';
-            const completion = isActionSubgoal && 'completionPercentage' in subgoal
-              ? (subgoal as any).completionPercentage
-              : subgoal.status === 'completed' ? 100 : 0;
-            const isCompleted = completion === 100;
-
-            return (
-              <motion.button
-                key={subgoal.id}
-                variants={itemVariants}
-                custom={goal.tasks.length + index}
-                layout
-                onClick={() => handleSubgoalClick(subgoal.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
-                  isCompleted
-                    ? "bg-success/10 border border-success/30"
-                    : "bg-primary/10 border border-primary/30 hover:border-primary/50"
-                )}
-              >
-                <Layers className={cn(
-                  "w-5 h-5 flex-shrink-0",
-                  isCompleted ? "text-success" : "text-primary"
-                )} />
-                <span className={cn(
-                  "flex-1 text-sm",
-                  isCompleted ? "text-muted-foreground line-through" : "text-foreground"
-                )}>
-                  {subgoal.title}
-                </span>
-                <span className={cn(
-                  "text-xs px-2 py-1 rounded-full",
-                  subgoal.type === 'item' && "badge-info",
-                  subgoal.type === 'finance' && "badge-accent",
-                  subgoal.type === 'action' && "badge-success"
-                )}>
-                  {subgoal.type}
-                </span>
-                {isActionSubgoal && (
-                  <span className="text-xs text-muted-foreground">
-                    {completion}%
-                  </span>
-                )}
-              </motion.button>
-            );
-          })}
-        </motion.div>
+        {/* Unified ObjectiveList Component */}
+        <ObjectiveList
+          tasks={goal.tasks}
+          subgoals={subgoals}
+          onTaskToggle={(taskId) => toggleTask(goal.id, taskId)}
+          onSubgoalClick={handleSubgoalClick}
+        />
       </motion.div>
-
-      {/* Subgoals Section - showing more details */}
-      {subgoals.length > 0 && <SubgoalsSection goal={goal} />}
     </div>
   );
 };

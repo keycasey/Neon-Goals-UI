@@ -435,4 +435,89 @@
       background-position: 200% 50%;
     }
   }
+
+  /* Glitched strike-through effect for completed tasks */
+  .glitch-strike {
+    position: relative;
+    text-decoration: none;
+  }
+
+  .glitch-strike::before,
+  .glitch-strike::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .glitch-strike::before {
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      var(--neon-cyan) 20%, 
+      var(--neon-magenta) 40%,
+      var(--neon-cyan) 60%,
+      transparent 100%
+    );
+    animation: glitch-strike-1 0.3s ease-out forwards;
+  }
+
+  .glitch-strike::after {
+    background: var(--neon-lime);
+    opacity: 0.5;
+    animation: glitch-strike-2 0.4s ease-out 0.1s forwards;
+  }
+
+  @keyframes glitch-strike-1 {
+    0% {
+      transform: translateY(-50%) scaleX(0);
+      opacity: 0;
+    }
+    50% {
+      transform: translateY(-50%) scaleX(1.1) translateX(-2px);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-50%) scaleX(1);
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes glitch-strike-2 {
+    0% {
+      transform: translateY(-50%) scaleX(0);
+      opacity: 0;
+    }
+    30% {
+      transform: translateY(-50%) scaleX(0.8) translateX(3px);
+    }
+    100% {
+      transform: translateY(-50%) scaleX(1);
+      opacity: 0.3;
+    }
+  }
+
+  /* Supercritical glow state for 100% complete */
+  .supercritical-glow {
+    animation: supercritical-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes supercritical-pulse {
+    0%, 100% {
+      box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.3),
+        0 0 20px rgba(255, 255, 255, 0.2),
+        inset 0 0 15px rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    50% {
+      box-shadow: 
+        0 0 20px rgba(255, 255, 255, 0.5),
+        0 0 40px rgba(255, 255, 255, 0.3),
+        inset 0 0 25px rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+  }
 }
