@@ -223,10 +223,20 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
                 exit={{ opacity: 0, x: -20, scale: 0.95 }}
                 transition={{ ...springConfig, delay: idx * 0.05 }}
                 onClick={() => onViewDetail(subgoal.id)}
-                className="glass-card p-3 cursor-pointer hover:neon-border transition-all group/subgoal"
+                className={cn(
+                  "relative p-3 cursor-pointer transition-all group/subgoal",
+                  "glass-card",
+                  // Magenta border for subgoals (distinct from cyan tasks)
+                  "border-2 border-[hsl(var(--neon-magenta)/0.4)]",
+                  "hover:border-[hsl(var(--neon-magenta)/0.8)]",
+                  "hover:shadow-[0_0_15px_hsl(var(--neon-magenta)/0.3)]"
+                )}
               >
+                {/* Magenta accent line on left edge */}
+                <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-[hsl(var(--neon-magenta))] rounded-full" />
+                
                 {/* Header */}
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-2 pl-2">
                   <div className="flex-1">
                     <h4 className="font-medium text-foreground text-sm">
                       {subgoal.title}
@@ -240,7 +250,7 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
                   <span className={cn(
                     "px-2 py-0.5 rounded text-xs font-medium",
                     subgoal.status === 'completed' && "bg-success/20 text-success",
-                    subgoal.status === 'active' && "bg-primary/20 text-primary",
+                    subgoal.status === 'active' && "bg-[hsl(var(--neon-magenta)/0.2)] text-[hsl(var(--neon-magenta))]",
                     subgoal.status === 'archived' && "bg-muted/50 text-muted-foreground"
                   )}>
                     {subgoal.status}
@@ -249,10 +259,10 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
 
                 {/* Subgoal Tasks Progress (if it's an action goal subgoal) */}
                 {subgoal.type === 'action' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 pl-2">
                     <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-neon"
+                        className="h-full bg-gradient-to-r from-[hsl(var(--neon-magenta))] to-[hsl(var(--neon-cyan))]"
                         initial={{ width: 0 }}
                         animate={{ width: `${(subgoal as ActionGoal).completionPercentage || 0}%` }}
                         transition={{ duration: 0.5 }}
@@ -266,7 +276,7 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
 
                 {/* Target Date (if set) */}
                 {subgoal.targetDate && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-2 pl-2">
                     Target: {new Date(subgoal.targetDate).toLocaleDateString()}
                   </p>
                 )}
