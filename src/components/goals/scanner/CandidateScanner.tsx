@@ -79,6 +79,36 @@ export const CandidateScanner: React.FC<CandidateScannerProps> = ({
     return null;
   });
 
+  // Sync local state when props change (after opening scanner again with updated data)
+  useEffect(() => {
+    // Sync primary
+    if (selectedCandidateId) {
+      const selected = candidates.find(c => c.id === selectedCandidateId);
+      setPrimary(selected ? toManagedCandidate(selected, 'primary') : null);
+    } else {
+      setPrimary(null);
+    }
+
+    // Sync shortlist
+    setShortlist((shortlistedCandidates || []).map(c => toManagedCandidate(c, 'shortlisted')));
+
+    // Sync prospects - filter out denied, selected, and shortlisted
+    const updatedShortlistedIds = (shortlistedCandidates || []).map(c => c.id);
+    const updatedDeniedIds = (deniedCandidates || []).map(c => c.id);
+    setProspects(
+      candidates
+        .filter(c =>
+          c.id !== selectedCandidateId &&
+          !updatedShortlistedIds.includes(c.id) &&
+          !updatedDeniedIds.includes(c.id)
+        )
+        .map(c => toManagedCandidate(c, 'prospect'))
+    );
+
+    // Reset current index if out of bounds
+    setCurrentIndex(0);
+  }, [candidates, selectedCandidateId, shortlistedCandidates, deniedCandidates]);
+
   // Handle liking a prospect (moves to shortlist with warp animation)
   const handleLike = useCallback((candidate: ManagedCandidate) => {
     setAnimation('warp-to-shortlist');
@@ -136,14 +166,26 @@ export const CandidateScanner: React.FC<CandidateScannerProps> = ({
     setAnimation('installing-primary');
 
     setTimeout(() => {
+      let updatedShortlist: ManagedCandidate[];
+
       // If there's a current primary, move it back to shortlist
       if (primary) {
-        setShortlist(prev => [
-          { ...primary, status: 'shortlisted', shortlistedAt: new Date() },
-          ...prev.filter(p => p.id !== candidate.id),
-        ]);
+        setShortlist(prev => {
+          updatedShortlist = [
+            { ...primary, status: 'shortlisted', shortlistedAt: new Date() },
+            ...prev.filter(p => p.id !== candidate.id),
+          ];
+          // Sync to parent
+          onShortlistChange?.(updatedShortlist);
+          return updatedShortlist;
+        });
       } else {
-        setShortlist(prev => prev.filter(p => p.id !== candidate.id));
+        setShortlist(prev => {
+          updatedShortlist = prev.filter(p => p.id !== candidate.id);
+          // Sync to parent
+          onShortlistChange?.(updatedShortlist);
+          return updatedShortlist;
+        });
       }
 
       // Set new primary
@@ -154,12 +196,12 @@ export const CandidateScanner: React.FC<CandidateScannerProps> = ({
       };
       setPrimary(newPrimary);
 
-      // Call parent callback
+      // Call parent callback to select this candidate
       onSelect(candidate);
 
       setAnimation('idle');
     }, 800);
-  }, [primary, onSelect]);
+  }, [primary, onSelect, onShortlistChange]);
 
   // Handle removing from shortlist
   const handleRemoveFromShortlist = useCallback((candidate: ManagedCandidate) => {

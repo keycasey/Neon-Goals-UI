@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { API_BASE_URL as API_BASE } from '@/lib/apiConfig';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -25,8 +26,6 @@ export interface StreamChunk {
   awaitingConfirmation?: boolean;
   commands?: Array<{ type: string; data: any }>;
 }
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   // Read token dynamically on each request

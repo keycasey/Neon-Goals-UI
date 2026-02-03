@@ -128,13 +128,22 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
 }) => {
   const shouldAnimate = animationIndex >= 0;
   const progress = getGoalProgress(goal);
-  
+
+  // Helper to check if an item goal has a valid selected candidate
+  const hasValidSelection = (itemGoal: ItemGoal) => {
+    if (!itemGoal.selectedCandidateId) return false;
+    return itemGoal.candidates?.some(c => c.id === itemGoal.selectedCandidateId) ?? false;
+  };
+
   // Get next task or relevant info
   const getNextInfo = () => {
     switch (goal.type) {
       case 'item':
         const itemGoal = goal as ItemGoal;
-        return `Best price: $${itemGoal.bestPrice.toLocaleString()} at ${itemGoal.retailerName}`;
+        if (hasValidSelection(itemGoal)) {
+          return `Best price: $${itemGoal.bestPrice.toLocaleString()} at ${itemGoal.retailerName}`;
+        }
+        return 'Select an option to see details';
       case 'finance':
         const financeGoal = goal as FinanceGoal;
         const remaining = financeGoal.targetBalance - financeGoal.currentBalance;
@@ -179,12 +188,18 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
       {/* Progress Circle - smaller on mobile */}
       <div className="flex-shrink-0">
         {goal.type === 'item' ? (
-          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-muted">
-            <img
-              src={(goal as ItemGoal).productImage}
-              alt={goal.title}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+            {hasValidSelection(goal as ItemGoal) && (goal as ItemGoal).productImage ? (
+              <img
+                src={(goal as ItemGoal).productImage}
+                alt={goal.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted">
+                <span className="text-2xl">📦</span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="hidden sm:block">
@@ -238,9 +253,14 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
             {(goal as ActionGoal).tasks.filter(t => t.completed).length}/{(goal as ActionGoal).tasks.length}
           </div>
         )}
-        {goal.type === 'item' && (
+        {goal.type === 'item' && hasValidSelection(goal as ItemGoal) && (
           <p className="text-lg font-heading font-bold neon-text-cyan">
             ${(goal as ItemGoal).bestPrice.toLocaleString()}
+          </p>
+        )}
+        {goal.type === 'item' && !hasValidSelection(goal as ItemGoal) && (
+          <p className="text-lg font-heading font-bold text-muted-foreground">
+            TBD
           </p>
         )}
       </div>
@@ -264,7 +284,7 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
             <RefreshCw className="w-4 h-4" />
           </button>
         )}
-        {goal.type === 'item' && (
+        {goal.type === 'item' && hasValidSelection(goal as ItemGoal) && (
           <a
             href={(goal as ItemGoal).retailerUrl}
             target="_blank"

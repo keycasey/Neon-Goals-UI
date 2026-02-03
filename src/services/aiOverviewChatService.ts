@@ -4,14 +4,27 @@ export interface OverviewChatRequest {
   message: string;
 }
 
+export type ChatCommandType =
+  | 'CREATE_GOAL'
+  | 'CREATE_SUBGOAL'
+  | 'UPDATE_PROGRESS'
+  | 'UPDATE_TITLE'
+  | 'UPDATE_FILTERS'
+  | 'ADD_TASK'
+  | 'REMOVE_TASK'
+  | 'TOGGLE_TASK'
+  | 'ARCHIVE_GOAL';
+
 export interface ChatCommand {
-  type: 'CREATE_SUBGOAL' | 'UPDATE_PROGRESS';
+  type: ChatCommandType;
   data: any;
 }
 
 export interface OverviewChatResponse {
   content: string;
   commands?: ChatCommand[];
+  hasPendingCommands?: boolean;
+  pendingCommands?: ChatCommand[];
 }
 
 export interface OverviewStreamChunk {
@@ -93,4 +106,26 @@ export const aiOverviewChatService = {
       reader.releaseLock();
     }
   },
+
+  /**
+   * Stop active overview chat stream
+   */
+  async stopStream(): Promise<{ stopped: boolean; message: string }> {
+    return apiClient.post('/ai/overview/chat/stop');
+  },
+
+  /**
+   * Confirm and execute pending commands
+   */
+  async confirmCommands(commands: ChatCommand[]): Promise<any> {
+    return apiClient.post('/ai/overview/chat/confirm-commands', { commands });
+  },
+
+  /**
+   * Cancel pending commands
+   */
+  async cancelCommands(reason?: string): Promise<any> {
+    return apiClient.post('/ai/overview/chat/cancel-commands', { reason });
+  },
 };
+

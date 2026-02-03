@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, Trash2, Archive, TrendingDown, Package, Clock, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ItemGoal } from '@/types/goals';
 import { ScannerPlaceholder } from './ScannerPlaceholder';
+import { useAppStore } from '@/store/useAppStore';
 
 interface StackedItemGoalCardProps {
   goals: ItemGoal[];
@@ -38,17 +39,49 @@ export const StackedItemGoalCard = React.forwardRef<
   onArchive,
   animationIndex,
 }, ref) => {
+  const { goals: storeGoals } = useAppStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const shouldAnimate = animationIndex >= 0;
-  
+
+  // Get latest goals from store to ensure reactivity
+  const latestGoals = useMemo(() => {
+    return goals.map(g => {
+      const found = storeGoals.find(sg => sg.id === g.id);
+      return (found as ItemGoal) || g;
+    });
+  }, [storeGoals, goals]);
+
+  // Helper to check if a goal has a valid selected candidate (not stale)
+  const hasValidSelection = (goal: ItemGoal) => {
+    if (!goal.selectedCandidateId) return false;
+    return goal.candidates?.some(c => c.id === goal.selectedCandidateId) ?? false;
+  };
+
   // Sort by stackOrder
-  const sortedGoals = [...goals].sort((a, b) => (a.stackOrder ?? 0) - (b.stackOrder ?? 0));
+  const sortedGoals = [...latestGoals].sort((a, b) => (a.stackOrder ?? 0) - (b.stackOrder ?? 0));
   const frontGoal = sortedGoals[0];
   const stackedGoals = sortedGoals.slice(1);
-  
-  // Calculate total price of stack
-  const totalPrice = sortedGoals.reduce((sum, g) => sum + g.bestPrice, 0);
-  
+
+  // Calculate total price of stack (only for goals with valid selections)
+  const totalPrice = sortedGoals.reduce((sum, g) => {
+    return hasValidSelection(g) ? sum + g.bestPrice : sum;
+  }, 0);
+  const goalsWithValidSelection = sortedGoals.filter(g => hasValidSelection(g)).length;
+
+  // Helper to calculate candidate count for a single goal
+  // (only main scanner candidates, exclude denied and shortlisted)
+  const getCandidateCount = (goal: ItemGoal) => {
+    if (!goal.candidates) return 0;
+
+    const deniedIds = (goal.deniedCandidates || []).map(c => c.id);
+    const shortlistedIds = (goal.shortlistedCandidates || []).map(c => c.id);
+
+    // Count only main scanner candidates (excluding denied and shortlisted)
+    return goal.candidates.filter(c =>
+      !deniedIds.includes(c.id) && !shortlistedIds.includes(c.id)
+    ).length;
+  };
+
   const status = statusConfig[frontGoal.statusBadge];
 
   return (
@@ -85,17 +118,21 @@ export const StackedItemGoalCard = React.forwardRef<
       >
         {/* Image Section */}
         <div className="relative h-40 overflow-hidden rounded-t-lg">
-          {/* Show scanner placeholder for default/placeholder images */}
-          {frontGoal.productImage?.includes('unsplash.com') ? (
+          {/* Show scanner placeholder when: no valid selection, no image, or placeholder image */}
+          {!frontGoal.productImage ||
+           frontGoal.productImage?.includes('unsplash.com') ||
+           !hasValidSelection(frontGoal) ? (
             <ScannerPlaceholder
               status={
                 frontGoal.statusBadge === 'pending_search' || frontGoal.statusBadge === 'pending-search'
                   ? 'initiating'
-                  : (frontGoal.candidates && frontGoal.candidates.length > 0)
+                  : hasValidSelection(frontGoal)
+                  ? 'acquired'
+                  : getCandidateCount(frontGoal) > 0
                   ? 'decoding'
                   : 'initiating'
               }
-              signalCount={frontGoal.candidates?.length || 0}
+              signalCount={getCandidateCount(frontGoal)}
               className="h-full"
             />
           ) : (
@@ -145,14 +182,25 @@ export const StackedItemGoalCard = React.forwardRef<
 
           {/* Total Price */}
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-heading font-bold neon-text-cyan">
-                ${totalPrice.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Total for all {sortedGoals.length} items
-              </p>
-            </div>
+            {goalsWithValidSelection > 0 ? (
+              <div>
+                <p className="text-2xl font-heading font-bold neon-text-cyan">
+                  ${totalPrice.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Total for {goalsWithValidSelection} of {sortedGoals.length} items
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-2xl font-heading font-bold text-muted-foreground">
+                  TBD
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Select options to see total
+                </p>
+              </div>
+            )}
 
             <button
               onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
@@ -187,16 +235,20 @@ export const StackedItemGoalCard = React.forwardRef<
               >
                 {/* Thumbnail */}
                 <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                  {goal.productImage?.includes('unsplash.com') ? (
+                  {!goal.productImage ||
+                   goal.productImage?.includes('unsplash.com') ||
+                   !hasValidSelection(goal) ? (
                     <ScannerPlaceholder
                       status={
                         goal.statusBadge === 'pending_search' || goal.statusBadge === 'pending-search'
                           ? 'initiating'
-                          : (goal.candidates && goal.candidates.length > 0)
+                          : hasValidSelection(goal)
+                          ? 'acquired'
+                          : getCandidateCount(goal) > 0
                           ? 'decoding'
                           : 'initiating'
                       }
-                      signalCount={goal.candidates?.length || 0}
+                      signalCount={getCandidateCount(goal)}
                       className="w-full h-full"
                     />
                   ) : (
@@ -226,7 +278,7 @@ export const StackedItemGoalCard = React.forwardRef<
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity z-20">
                   <a
                     href={goal.retailerUrl}
                     target="_blank"

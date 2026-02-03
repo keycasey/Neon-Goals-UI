@@ -38,6 +38,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     archiveGoal,
     syncFinanceGoal,
     searchAndUpdateGoal,
+    fetchGoals,
   } = useAppStore();
 
   // Mark as animated after initial animation completes
@@ -47,6 +48,27 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
       hasAnimatedOnce = true;
     }
   }, [shouldAnimate]);
+
+  // Poll for updates when there are active scrapes
+  useEffect(() => {
+    const POLL_INTERVAL = 5000; // Poll every 5 seconds
+
+    const checkAndRefresh = async () => {
+      // Check if any goals are in searching state
+      const hasActiveScrapes = goals.some(g =>
+        g.statusBadge === 'pending_search' || g.statusBadge === 'pending-search'
+      );
+
+      if (hasActiveScrapes) {
+        console.log('[GoalGrid] Active scrapes detected, refreshing goals...');
+        await fetchGoals();
+      }
+    };
+
+    const interval = setInterval(checkAndRefresh, POLL_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [goals, fetchGoals]);
 
   const handleViewDetail = (goalId: string) => {
     navigate(`/goals/${goalId}`);
@@ -155,7 +177,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
       className={cn(
         // Masonry layout using CSS columns
         "columns-1 md:columns-2 lg:columns-2 xl:columns-3 2xl:columns-4",
-        // Gap between columns and items
+        // Gap between columns (horizontal only)
         "gap-4 md:gap-6",
         // Prevent container from collapsing
         "w-full",
@@ -167,31 +189,33 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
         {stackedGoals.map((stack) => {
           const idx = animationCounter++;
           return (
-            <StackedItemGoalCard
-              key={`stack-${stack[0].stackId}`}
-              goals={stack}
-              onViewDetail={handleViewDetail}
-              onDelete={deleteGoal}
-              onArchive={archiveGoal}
-              animationIndex={shouldAnimate ? idx : -1}
-            />
+            <div key={`stack-${stack[0].stackId}`} className="mb-4 md:mb-6 break-inside-avoid">
+              <StackedItemGoalCard
+                goals={stack}
+                onViewDetail={handleViewDetail}
+                onDelete={deleteGoal}
+                onArchive={archiveGoal}
+                animationIndex={shouldAnimate ? idx : -1}
+              />
+            </div>
           );
         })}
-        
+
         {/* Render individual goals */}
         {individualGoals.map((goal) => {
           const idx = animationCounter++;
           return (
-            <GoalCardWrapper
-              key={goal.id}
-              goal={goal}
-              onViewDetail={handleViewDetail}
-              onDelete={deleteGoal}
-              onArchive={archiveGoal}
-              onSync={syncFinanceGoal}
-              onSearch={searchAndUpdateGoal}
-              animationIndex={shouldAnimate ? idx : -1}
-            />
+            <div key={goal.id} className="mb-4 md:mb-6 break-inside-avoid">
+              <GoalCardWrapper
+                goal={goal}
+                onViewDetail={handleViewDetail}
+                onDelete={deleteGoal}
+                onArchive={archiveGoal}
+                onSync={syncFinanceGoal}
+                onSearch={searchAndUpdateGoal}
+                animationIndex={shouldAnimate ? idx : -1}
+              />
+            </div>
           );
         })}
       </AnimatePresence>

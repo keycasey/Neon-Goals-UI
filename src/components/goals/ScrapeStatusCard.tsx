@@ -10,6 +10,7 @@ interface ScrapeStatusCardProps {
   goal: ItemGoal;
   onFiltersUpdate?: (filters: Record<string, any>) => void;
   onRefresh?: () => Promise<void>;
+  onScrapeComplete?: () => Promise<void>;
 }
 
 const statusConfig: Record<ScrapeJobStatus, { icon: React.ElementType; color: string; label: string }> = {
@@ -37,7 +38,7 @@ const statusConfig: Record<ScrapeJobStatus, { icon: React.ElementType; color: st
 
 const POLL_INTERVAL = 3000; // Poll every 3 seconds
 
-export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFiltersUpdate, onRefresh }) => {
+export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFiltersUpdate, onRefresh, onScrapeComplete }) => {
   const [scrapeJobs, setScrapeJobs] = useState<ScrapeJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -45,6 +46,8 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [previousJobStatus, setPreviousJobStatus] = useState<ScrapeJobStatus | null>(null);
+  const [hasRefreshedAfterComplete, setHasRefreshedAfterComplete] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const shouldStartPollingRef = useRef(false);
 
@@ -52,6 +55,12 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
   const handleRefresh = async () => {
     if (!onRefresh || isRefreshing) return;
     setIsRefreshing(true);
+
+    // Clear old jobs immediately to prevent showing stale completed status
+    setScrapeJobs([]);
+    setHasRefreshedAfterComplete(false);
+    setPreviousJobStatus(null);
+
     try {
       await onRefresh();
     } finally {
@@ -65,6 +74,21 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
       const jobs = await goalsService.getScrapeJobs(goal.id);
       const jobsArray = Array.isArray(jobs) ? jobs : [jobs].filter(Boolean);
       setScrapeJobs(jobsArray);
+
+      const latestJob = jobsArray.length > 0 ? jobsArray[0] : null;
+      const currentStatus = latestJob?.status || (goal.statusBadge === 'pending_search' || goal.statusBadge === 'pending-search' ? 'pending' : 'completed');
+
+      // Detect transition from active (pending/running) to completed
+      const wasActive = previousJobStatus === 'pending' || previousJobStatus === 'running';
+      const isNowComplete = currentStatus === 'completed' || currentStatus === 'failed';
+
+      if (wasActive && isNowComplete && !hasRefreshedAfterComplete && onScrapeComplete) {
+        console.log('[ScrapeStatusCard] Scrape completed, refreshing goal data...');
+        setHasRefreshedAfterComplete(true);
+        await onScrapeComplete();
+      }
+
+      setPreviousJobStatus(currentStatus);
 
       // Check if we should continue polling - only if there are active (pending/running) jobs
       const hasActiveJobs = jobsArray.some(
@@ -145,6 +169,10 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
   const statusColor = statusConfig[status]?.color || 'text-warning';
   const statusLabel = statusConfig[status]?.label || 'Unknown';
 
+  // Disable refresh when there's an active job or currently refreshing
+  const hasActiveJob = status === 'pending' || status === 'running';
+  const isRefreshDisabled = isRefreshing || hasActiveJob;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -173,16 +201,16 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
           {onRefresh && (
             <button
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={isRefreshDisabled}
               className={cn(
                 "p-2 rounded-lg transition-all",
-                isRefreshing
-                  ? "bg-primary/20 text-primary cursor-wait"
+                isRefreshDisabled
+                  ? "bg-muted/20 text-muted-foreground cursor-not-allowed"
                   : "bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
               aria-label="Refresh search"
             >
-              <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+              <RefreshCw className={cn("w-4 h-4", hasActiveJob && "animate-spin")} />
             </button>
           )}
 

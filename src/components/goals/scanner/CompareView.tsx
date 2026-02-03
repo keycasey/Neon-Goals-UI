@@ -165,7 +165,7 @@ const PrimaryCard: React.FC<PrimaryCardProps> = ({ candidate }) => {
               <p className="text-xs text-muted-foreground">Rating</p>
               <p className="text-sm font-medium text-warning flex items-center gap-1">
                 <Star className="w-3 h-3 fill-current" />
-                {candidate.rating || 'N/A'}
+                {candidate.rating ? Math.round(candidate.rating * 10) / 10 : 'N/A'}
               </p>
             </div>
             <div className="p-2 rounded-lg bg-muted/30">
@@ -260,7 +260,7 @@ const CompareRow: React.FC<CompareRowProps> = ({
           isHighestRating ? "text-warning font-medium" : "text-muted-foreground"
         )}>
           <Star className={cn("w-3 h-3", isHighestRating && "fill-current")} />
-          {candidate.rating || '-'}
+          {candidate.rating ? Math.round(candidate.rating * 10) / 10 : '-'}
         </span>
       </td>
       <td className="p-3">

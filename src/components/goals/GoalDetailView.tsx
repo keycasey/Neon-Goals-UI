@@ -241,53 +241,86 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
 
 // Item Goal Detail with Scanner Mode
 const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
-  const { isChatMinimized, updateGoal, searchAndUpdateGoal } = useAppStore();
+  const { isChatMinimized, updateGoal, searchAndUpdateGoal, goals, fetchGoals, goalsVersion } = useAppStore();
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<ProductCandidate | null>(
-    goal.candidates?.find(c => c.id === goal.selectedCandidateId) ||
-    goal.candidates?.[0] || null
-  );
+
+  // Get the latest goal from store to ensure reactivity (use goalsVersion to force updates)
+  const latestGoal = useMemo(() => {
+    return goals.find(g => g.id === goal.id) as ItemGoal || goal;
+  }, [goals, goal.id, goalsVersion]);
+
+  // Initialize selectedCandidate from the goal's selectedCandidateId (if set), but don't auto-select first candidate
+  const [selectedCandidate, setSelectedCandidate] = useState<ProductCandidate | null>(() => {
+    // Only auto-select if the goal already has an explicit selectedCandidateId
+    if (latestGoal.selectedCandidateId && latestGoal.candidates) {
+      return latestGoal.candidates.find(c => c.id === latestGoal.selectedCandidateId) || null;
+    }
+    // Otherwise start with null (no auto-selection)
+    return null;
+  });
   const [hasNewCandidates, setHasNewCandidates] = useState(false);
   // Track candidate count before search to detect new candidates after search completes
   const [candidateCountBeforeSearch, setCandidateCountBeforeSearch] = useState<number | null>(null);
+  const [justCompletedScrape, setJustCompletedScrape] = useState(false); // Track when scrape just completed
+  const [scrapedWithNoResults, setScrapedWithNoResults] = useState(false); // Track when scrape completed with no new candidates
+  const [scrapeCompleted, setScrapeCompleted] = useState(false); // Track when scrape job completes (regardless of results)
 
-  // Check if there are any candidates OR shortlisted items OR a selected candidate
-  const hasCandidates = (goal.candidates && goal.candidates.length > 0) ||
-    ((goal as ItemGoal).shortlistedCandidates && (goal as ItemGoal).shortlistedCandidates!.length > 0) ||
-    goal.selectedCandidateId;
-
-  // Calculate active prospect count (exclude denied, shortlisted, and selected)
-  const candidateCount = (() => {
-    if (!goal.candidates) return 0;
-
-    const shortlistedIds = (goal.shortlistedCandidates || []).map(c => c.id);
-    const deniedIds = (goal.deniedCandidates || []).map(c => c.id);
-
-    const activeProspects = goal.candidates.filter(c =>
-      c.id !== goal.selectedCandidateId &&
-      !shortlistedIds.includes(c.id) &&
-      !deniedIds.includes(c.id)
-    );
-
-    // Debug logging
-    console.log('[CandidateCount]', {
-      total: goal.candidates.length,
-      selectedId: goal.selectedCandidateId,
-      shortlisted: shortlistedIds.length,
-      denied: deniedIds.length,
-      active: activeProspects.length,
-      deniedCandidates: goal.deniedCandidates,
-      shortlistedCandidates: goal.shortlistedCandidates,
+  // Sync selectedCandidate and goal data when store updates
+  useEffect(() => {
+    console.log('[ItemGoalDetail] Goal updated, syncing state', {
+      candidatesLength: latestGoal.candidates?.length,
+      selectedCandidateId: latestGoal.selectedCandidateId,
+      productImage: latestGoal.productImage,
+      statusBadge: latestGoal.statusBadge,
+      justCompletedScrape,
     });
 
-    return activeProspects.length;
+    // Keep current selectedCandidate if it still exists in candidates, otherwise sync with store
+    setSelectedCandidate(prev => {
+      // If we just completed a scrape with new candidates, don't auto-select
+      if (justCompletedScrape) {
+        return prev; // Keep current selection (or null if none was selected)
+      }
+
+      // If current selection still exists in new candidates array, keep it
+      if (prev && latestGoal.candidates?.some(c => c.id === prev.id)) {
+        return prev;
+      }
+
+      // Otherwise, try to find the candidate matching the store's selectedCandidateId
+      // BUT exclude denied candidates from auto-selection
+      const deniedIds = (latestGoal.deniedCandidates || []).map(c => c.id);
+      const matchingCandidate = latestGoal.candidates?.find(c =>
+        c.id === latestGoal.selectedCandidateId && !deniedIds.includes(c.id)
+      );
+
+      return matchingCandidate || null; // Don't auto-select denied candidates
+    });
+  }, [latestGoal.candidates, latestGoal.selectedCandidateId, latestGoal.productImage, latestGoal.id, latestGoal.statusBadge, latestGoal.deniedCandidates, justCompletedScrape]);
+
+  // Check if there are any candidates OR shortlisted items OR a selected candidate
+  const hasCandidates = (latestGoal.candidates && latestGoal.candidates.length > 0) ||
+    ((latestGoal as ItemGoal).shortlistedCandidates && (latestGoal as ItemGoal).shortlistedCandidates!.length > 0) ||
+    latestGoal.selectedCandidateId;
+
+  // Calculate candidate count (only main scanner candidates, exclude denied and shortlisted)
+  const candidateCount = (() => {
+    const deniedIds = (latestGoal.deniedCandidates || []).map(c => c.id);
+    const shortlistedIds = ((latestGoal as ItemGoal).shortlistedCandidates || []).map(c => c.id);
+
+    // Count only main scanner candidates (excluding denied and shortlisted)
+    return (latestGoal.candidates || []).filter(c =>
+      !deniedIds.includes(c.id) && !shortlistedIds.includes(c.id)
+    ).length;
   })();
 
   // Track search status changes to detect new candidates
-  const prevStatusRef = useRef(goal.statusBadge);
+  const prevStatusRef = useRef(latestGoal.statusBadge);
+  const [newCandidatesCount, setNewCandidatesCount] = useState(0); // Track how many new candidates
+
   useEffect(() => {
     const prevStatus = prevStatusRef.current;
-    const currentStatus = goal.statusBadge;
+    const currentStatus = latestGoal.statusBadge;
 
     // When entering searching state, store current candidate count
     const isEnteringSearch = (currentStatus === 'pending_search' || currentStatus === 'pending-search') &&
@@ -299,26 +332,63 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
 
     if (isEnteringSearch) {
       // Store candidate count before search starts
-      setCandidateCountBeforeSearch(goal.candidates?.length ?? 0);
-      console.log('[ItemGoalDetail] Starting search, candidate count:', goal.candidates?.length ?? 0);
+      setCandidateCountBeforeSearch(latestGoal.candidates?.length ?? 0);
+      setScrapeCompleted(false); // Reset completion state when starting new scrape
+      setScrapedWithNoResults(false); // Reset no results state when starting new scrape
+      console.log('[ItemGoalDetail] Starting search, candidate count:', latestGoal.candidates?.length ?? 0);
     } else if (isLeavingSearch && candidateCountBeforeSearch !== null) {
-      // Compare counts after search completes
-      const newCount = goal.candidates?.length ?? 0;
-      const oldCount = candidateCountBeforeSearch;
-      const hasNew = newCount > oldCount;
+      // Status changed from pending_search to something else
+      // Note: scrapeCompleted is NOT cleared here - it should persist until next scrape starts
+      // This ensures "no_candidates" status persists even after backend updates statusBadge
+      console.log('[ItemGoalDetail] Status changed from pending_search, scrapeCompleted:', scrapeCompleted);
 
-      console.log('[ItemGoalDetail] Search completed, old:', oldCount, 'new:', newCount, 'hasNew:', hasNew);
+      // Compare counts after search completes
+      const newCount = latestGoal.candidates?.length ?? 0;
+      const oldCount = candidateCountBeforeSearch;
+      const newCandidatesAdded = newCount - oldCount;
+      const hasNew = newCandidatesAdded > 0;
+
+      console.log('[ItemGoalDetail] Search completed, old:', oldCount, 'new:', newCount, 'added:', newCandidatesAdded, 'hasNew:', hasNew);
       setHasNewCandidates(hasNew);
+      setNewCandidatesCount(newCandidatesAdded);
+
+      // Mark that we just completed a scrape (to prevent auto-selection)
+      if (hasNew) {
+        setJustCompletedScrape(true);
+        setScrapedWithNoResults(false);
+        // Clear the flag after a short delay
+        setTimeout(() => setJustCompletedScrape(false), 1000);
+      }
+      // Note: We don't set scrapedWithNoResults here anymore since it's handled in onScrapeComplete
     }
 
     prevStatusRef.current = currentStatus;
-  }, [goal.statusBadge, goal.candidates?.length, candidateCountBeforeSearch]);
+  }, [latestGoal.statusBadge, latestGoal.candidates, candidateCountBeforeSearch]);
+
+  // Track candidate count changes to clear scrapedWithNoResults when candidates arrive
+  const prevCandidateCountRef = useRef(0);
+  prevCandidateCountRef.current = candidateCount;
+
+  useEffect(() => {
+    // If we had "no results" but now have candidates, clear the flag
+    if (scrapedWithNoResults && candidateCount > 0 && prevCandidateCountRef.current === 0) {
+      console.log('[ItemGoalDetail] Candidates arrived after no results, clearing scrapedWithNoResults');
+      setScrapedWithNoResults(false);
+    }
+  }, [candidateCount, scrapedWithNoResults]);
 
   const handleSelectCandidate = (candidate: ProductCandidate) => {
     setSelectedCandidate(candidate);
     setHasNewCandidates(false);
+    setNewCandidatesCount(0);
+    console.log('[ItemGoalDetail] Selecting candidate:', {
+      candidateId: candidate.id,
+      candidateName: candidate.name,
+      candidateImage: candidate.image,
+      currentProductImage: latestGoal.productImage,
+    });
     // Update the goal with new selected candidate
-    updateGoal(goal.id, {
+    updateGoal(latestGoal.id, {
       bestPrice: candidate.price,
       retailerName: candidate.retailer,
       retailerUrl: candidate.url,
@@ -328,17 +398,18 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
   };
 
   const handleShortlistChange = (shortlistedCandidates: ProductCandidate[]) => {
-    // Remove shortlisted candidates from the main candidates array
-    const shortlistedIds = shortlistedCandidates.map(c => c.id);
-    const deniedIds = ((goal as ItemGoal).deniedCandidates || []).map(c => c.id);
+    // Remove denied candidates from the main candidates array
+    // DO NOT remove shortlisted candidates - keep candidates as complete source of truth
+    // The scanner uses the shortlistedCandidates prop separately to filter display
+    const deniedIds = ((latestGoal as ItemGoal).deniedCandidates || []).map(c => c.id);
 
-    const updatedCandidates = (goal.candidates || []).filter(c =>
-      !shortlistedIds.includes(c.id) &&
-      !deniedIds.includes(c.id) &&
-      c.id !== goal.selectedCandidateId
+    const updatedCandidates = (latestGoal.candidates || []).filter(c =>
+      c.id !== latestGoal.selectedCandidateId &&
+      !deniedIds.includes(c.id)
     );
 
-    updateGoal(goal.id, {
+    // Simply update the shortlist - don't try to auto-select anything
+    updateGoal(latestGoal.id, {
       candidates: updatedCandidates,
       shortlistedCandidates,
     } as any);
@@ -346,16 +417,15 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
 
   const handleDeniedChange = (deniedCandidates: ProductCandidate[]) => {
     // Remove denied candidates from the main candidates array
-    const shortlistedIds = ((goal as ItemGoal).shortlistedCandidates || []).map(c => c.id);
+    // DO NOT remove shortlisted candidates - keep candidates as complete source of truth
     const deniedIds = deniedCandidates.map(c => c.id);
 
-    const updatedCandidates = (goal.candidates || []).filter(c =>
-      !shortlistedIds.includes(c.id) &&
+    const updatedCandidates = (latestGoal.candidates || []).filter(c =>
       !deniedIds.includes(c.id) &&
-      c.id !== goal.selectedCandidateId
+      c.id !== latestGoal.selectedCandidateId
     );
 
-    updateGoal(goal.id, {
+    updateGoal(latestGoal.id, {
       candidates: updatedCandidates,
       deniedCandidates,
     } as any);
@@ -368,23 +438,24 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
     return () => window.removeEventListener('close-scanner', handleCloseScanner);
   }, []);
 
-  // Get the display image - selected candidate or goal image
-  const displayImage = selectedCandidate?.image || goal.productImage;
-  const displayPrice = selectedCandidate?.price || goal.bestPrice;
-  const displayRetailer = selectedCandidate?.retailer || goal.retailerName;
+  // Get the display image - only show image when a candidate is selected
+  const displayImage = selectedCandidate?.image || null;
+  const displayPrice = selectedCandidate?.price || latestGoal.bestPrice;
+  const displayRetailer = selectedCandidate?.retailer || latestGoal.retailerName;
 
   return (
     <div className="max-w-3xl">
       {/* Scanner Mode Overlay - Using new Digital Workbench */}
       <AnimatePresence>
-        {isScannerOpen && goal.candidates && (
+        {isScannerOpen && latestGoal.candidates && (
           <>
             <div data-scanner-open="true" style={{display: 'none'}} />
             <CandidateScanner
-              candidates={goal.candidates}
+              key={`${latestGoal.candidates.length}-${goalsVersion}`}
+              candidates={latestGoal.candidates}
               selectedCandidateId={selectedCandidate?.id}
-              shortlistedCandidates={(goal as ItemGoal).shortlistedCandidates}
-              deniedCandidates={(goal as ItemGoal).deniedCandidates}
+              shortlistedCandidates={(latestGoal as ItemGoal).shortlistedCandidates}
+              deniedCandidates={(latestGoal as ItemGoal).deniedCandidates}
               isChatMinimized={isChatMinimized}
               onSelect={handleSelectCandidate}
               onShortlistChange={handleShortlistChange}
@@ -396,36 +467,42 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
       </AnimatePresence>
 
       {/* Hero Image with Stack Indicator */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="relative h-64 lg:h-80 rounded-2xl overflow-hidden mb-6 group cursor-pointer"
         onClick={() => hasCandidates && setIsScannerOpen(true)}
       >
-        {!displayImage || displayImage?.includes('unsplash.com') ? (
+        {/* Show placeholder if: no selection, no image, image is from unsplash, or goal is in searching state */}
+        {!displayImage ||
+         displayImage?.includes('unsplash.com') ||
+         !selectedCandidate ||
+         (!scrapeCompleted && (latestGoal.statusBadge === 'pending_search' || latestGoal.statusBadge === 'pending-search')) ? (
           <ScannerPlaceholder
             status={
-              goal.statusBadge === 'pending_search' || goal.statusBadge === 'pending-search'
+              !scrapeCompleted && (latestGoal.statusBadge === 'pending_search' || latestGoal.statusBadge === 'pending-search')
                 ? 'initiating'
-                : (goal.candidates && goal.candidates.length > 0)
-                ? 'decoding'
+                : scrapedWithNoResults
+                ? 'no_candidates'
                 : selectedCandidate
                 ? 'acquired'
+                : candidateCount > 0
+                ? 'decoding'
                 : 'initiating'
             }
-            signalCount={goal.candidates?.length || 0}
+            signalCount={candidateCount}
             className="h-full"
           />
         ) : (
           <>
             <img
               src={displayImage}
-              alt={goal.title}
+              alt={latestGoal.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           </>
         )}
-        
+
         {/* New Candidate Alert - pulsing magenta indicator */}
         {hasNewCandidates && (
           <motion.div
@@ -442,17 +519,19 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
               }}
               transition={{ duration: 1, repeat: Infinity }}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/90 text-accent-foreground cursor-pointer"
-              onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); setHasNewCandidates(false); }}
+              onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); setHasNewCandidates(false); setNewCandidatesCount(0); }}
             >
               <AlertCircle className="w-4 h-4 animate-pulse" />
-              <span className="text-xs font-bold">NEW CANDIDATE</span>
+              <span className="text-xs font-bold">
+                {newCandidatesCount} NEW CANDIDATE{newCandidatesCount > 1 ? 'S' : ''}
+              </span>
             </motion.div>
           </motion.div>
         )}
-        
+
         {/* Stack Counter Badge */}
         {hasCandidates && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 rounded-xl glass-card neon-border cursor-pointer hover:scale-105 transition-transform"
@@ -465,7 +544,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </motion.div>
         )}
-        
+
         {/* Scanner Mode Hint */}
         {hasCandidates && (
           <motion.div
@@ -485,9 +564,9 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
         <motion.div variants={itemVariants}>
           <span className="badge-info mb-2 inline-block">Item Goal</span>
           <h1 className="font-heading text-3xl lg:text-4xl font-bold text-foreground mb-2">
-            {goal.title}
+            {latestGoal.title}
           </h1>
-          <p className="text-lg text-muted-foreground">{goal.description}</p>
+          <p className="text-lg text-muted-foreground">{latestGoal.description}</p>
         </motion.div>
 
         {/* Price Card */}
@@ -513,7 +592,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
                 </button>
               )}
               <a
-                href={selectedCandidate?.url || goal.retailerUrl}
+                href={selectedCandidate?.url || latestGoal.retailerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-neon text-primary-foreground font-semibold transition-all hover:scale-105 neon-glow-cyan"
@@ -554,7 +633,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
               </div>
               {selectedCandidate.rating && (
                 <div className="text-right">
-                  <p className="text-lg font-bold text-warning">★ {selectedCandidate.rating}</p>
+                  <p className="text-lg font-bold text-warning">★ {Math.round(selectedCandidate.rating * 10) / 10}</p>
                   {selectedCandidate.reviewCount && (
                     <p className="text-xs text-muted-foreground">{selectedCandidate.reviewCount.toLocaleString()} reviews</p>
                   )}
@@ -573,23 +652,23 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
             <div className="p-3 rounded-lg bg-muted/30">
               <p className="text-muted-foreground">Status</p>
               <p className="text-foreground font-medium capitalize">
-                {goal.statusBadge.replace('-', ' ').replace('_', ' ')}
+                {latestGoal.statusBadge.replace('-', ' ').replace('_', ' ')}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-muted/30">
               <p className="text-muted-foreground">Currency</p>
-              <p className="text-foreground font-medium">{goal.currency}</p>
+              <p className="text-foreground font-medium">{latestGoal.currency}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/30">
               <p className="text-muted-foreground">Added</p>
               <p className="text-foreground font-medium">
-                {new Date(goal.createdAt).toLocaleDateString()}
+                {new Date(latestGoal.createdAt).toLocaleDateString()}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-muted/30">
               <p className="text-muted-foreground">Last Updated</p>
               <p className="text-foreground font-medium">
-                {new Date(goal.updatedAt).toLocaleDateString()}
+                {new Date(latestGoal.updatedAt).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -598,9 +677,45 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
         {/* Scrape Status Card - Shows when searching or has recent jobs */}
         <motion.div variants={itemVariants}>
           <ScrapeStatusCard
-            goal={goal}
-            onFiltersUpdate={(filters) => updateGoal(goal.id, { searchFilters: filters } as any)}
-            onRefresh={() => searchAndUpdateGoal(goal.id)}
+            goal={latestGoal}
+            onFiltersUpdate={(filters) => updateGoal(latestGoal.id, { searchFilters: filters } as any)}
+            onRefresh={() => searchAndUpdateGoal(latestGoal.id)}
+            onScrapeComplete={async () => {
+              console.log('[ItemGoalDetail] Scrape completed, updating state...');
+              // Immediately mark scrape as completed (don't wait for backend statusBadge update)
+              setScrapeCompleted(true);
+              // Refresh goals to get latest data first
+              await fetchGoals();
+              // Then check candidate count after goals are refreshed
+              // Use setTimeout to ensure state has updated
+              setTimeout(() => {
+                // Get fresh goals from store
+                const store = useAppStore.getState();
+                const refreshedGoal = store.goals.find(g => g.id === latestGoal.id);
+                if (!refreshedGoal) {
+                  console.log('[ItemGoalDetail] Could not find refreshed goal');
+                  return;
+                }
+
+                const deniedIds = (refreshedGoal.deniedCandidates || []).map(c => c.id);
+                const shortlistedIds = (refreshedGoal.shortlistedCandidates || []).map(c => c.id);
+                const validCandidateCount = (refreshedGoal.candidates || []).filter(c =>
+                  !deniedIds.includes(c.id) && !shortlistedIds.includes(c.id)
+                ).length;
+
+                console.log('[ItemGoalDetail] After refresh, valid candidate count:', validCandidateCount);
+
+                if (validCandidateCount === 0) {
+                  console.log('[ItemGoalDetail] No valid candidates after scrape, setting scrapedWithNoResults');
+                  setScrapedWithNoResults(true);
+                } else {
+                  // Candidates exist, clear the no results flag
+                  setScrapedWithNoResults(false);
+                }
+              }, 100);
+              // Note: scrapeCompleted will be cleared when statusBadge changes from pending_search
+              // or when a new scrape starts (see the status tracking useEffect)
+            }}
           />
         </motion.div>
 

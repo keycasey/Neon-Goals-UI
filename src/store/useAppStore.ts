@@ -20,9 +20,23 @@ import { aiService } from '@/services/aiService';
 import { aiGoalCreationService } from '@/services/aiGoalCreationService';
 import { aiOverviewChatService } from '@/services/aiOverviewChatService';
 import { aiGoalChatService } from '@/services/aiGoalChatService';
+import { aiSpecialistChatService } from '@/services/aiSpecialistChatService';
 import { mockOverviewChatService } from '@/services/mockChatService';
 import { mockGoalChatService } from '@/services/mockChatService';
 import { browserUseService } from '@/services/browserUseService';
+
+// Chat command types from backend
+export interface ChatCommand {
+  type: 'ADD_TASK' | 'TOGGLE_TASK' | 'UPDATE_TITLE' | 'UPDATE_FILTERS' | 'ARCHIVE_GOAL';
+  goalId: string;
+  data: any;
+}
+
+export interface PendingCommandsState {
+  chatId: string;
+  commands: ChatCommand[];
+  timestamp: number;
+}
 
 interface AppState {
   // View state
@@ -37,14 +51,23 @@ interface AppState {
 
   // Data
   goals: Goal[];
+  goalsVersion: number; // Increment when goals are fetched to force re-renders
   user: User | null;
   settings: Settings;
 
   // Chat state
-  creationChat: ChatState;
-  goalChats: Record<string, ChatState>;
+  creationChat: ChatState; // Goal creation chat (temporary workflow)
+  goalChats: Record<string, ChatState>; // Per-goal chats
+  overviewChat: ChatState | null; // Persistent overview chat (separate from creation)
+  categoryChats: {
+    items: ChatState | null;
+    finances: ChatState | null;
+    actions: ChatState | null;
+  }; // Category specialist chats
   isCreatingGoal: boolean; // Track if in goal creation flow
-  pendingCommands: Array<{ type: string; data: any }> | null; // Commands awaiting user confirmation
+  pendingCommands: PendingCommandsState | null; // Commands awaiting user confirmation (with chatId)
+  handledProposals: Set<string>; // Track which proposal messages have had actions taken
+  activeStreams: Set<string>; // Track active stream IDs for streaming management
 
   // Loading state
   isLoading: boolean;
@@ -74,10 +97,33 @@ interface AppState {
   sendGoalMessage: (goalId: string, content: string) => void;
   startGoalCreation: () => void;
   stopGoalCreation: () => void;
+  addAssistantMessage: (mode: 'creation' | 'goal', goalId?: string, content: string) => void;
+  markProposalHandled: (messageId: string) => void;
+  isProposalHandled: (messageId: string) => boolean;
 
   // Pending commands actions
   cancelPendingCommands: (reason?: string) => Promise<void>;
   confirmPendingCommands: () => Promise<void>;
+
+  // Overview chat actions
+  fetchOverviewChat: () => Promise<void>;
+  sendOverviewMessage: (content: string) => Promise<void>;
+  stopOverviewStream: () => Promise<void>;
+
+  // Category specialist chat actions
+  fetchCategoryChat: (categoryId: 'items' | 'finances' | 'actions') => Promise<void>;
+  sendCategoryMessage: (categoryId: 'items' | 'finances' | 'actions', content: string) => Promise<void>;
+  stopCategoryStream: (categoryId: 'items' | 'finances' | 'actions') => Promise<void>;
+
+  // Stream management actions
+  setActiveStream: (streamId: string, active: boolean) => void;
+  isStreamActive: (streamId: string) => boolean;
+
+  // Message editing actions
+  editMessage: (chatType: 'overview' | 'category' | 'goal', chatId: string, messageId: string, newContent: string) => Promise<void>;
+
+  // Command execution helper
+  executeChatCommand: (command: ChatCommand) => Promise<void>;
 
   // Task actions (for ActionGoals)
   toggleTask: (goalId: string, taskId: string) => void;
@@ -131,12 +177,21 @@ export const useAppStore = create<AppState>()(
       isDemoMode: false,
 
       goals: [],
+      goalsVersion: 0,
       user: null, // Start with no user - requires login
       settings: defaultSettings,
       isLoading: false,
       error: null,
       isCreatingGoal: false,
       pendingCommands: null,
+      handledProposals: new Set<string>(), // Track which proposal messages have had actions taken
+      overviewChat: null,
+      categoryChats: {
+        items: null,
+        finances: null,
+        actions: null,
+      },
+      activeStreams: new Set<string>(),
 
       creationChat: {
         messages: [
@@ -461,7 +516,13 @@ export const useAppStore = create<AppState>()(
               // If message has goalPreview awaiting confirmation, store commands and wait for user
               if (finalChunk.awaitingConfirmation && finalChunk.goalPreview) {
                 // Store pending commands for later confirmation
-                set({ pendingCommands: finalChunk.commands || [] });
+                set({
+                  pendingCommands: {
+                    chatId: 'creation',
+                    commands: finalChunk.commands || [],
+                    timestamp: Date.now(),
+                  },
+                });
                 return;
               }
 
@@ -845,41 +906,61 @@ export const useAppStore = create<AppState>()(
 
       // Pending commands actions
       cancelPendingCommands: async (reason = 'Changed my mind') => {
+        const pending = get().pendingCommands;
+        if (!pending) {
+          console.error('No pending commands to cancel');
+          return;
+        }
+
+        const { chatId } = pending;
+
         try {
-          const token = localStorage.getItem('auth_token');
-          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-          const response = await fetch(`${API_BASE}/ai/overview/chat/cancel-commands`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
-            body: JSON.stringify({ reason }),
-          });
-
-          if (!response.ok) {
-            console.error('Failed to cancel commands:', response.status);
+          const isDemo = get().isDemoMode;
+          if (!isDemo) {
+            // Production mode: call the appropriate cancel endpoint
+            if (chatId === 'overview' || chatId === 'creation') {
+              await aiOverviewChatService.cancelCommands(reason);
+            } else if (chatId === 'items' || chatId === 'finances' || chatId === 'actions') {
+              await aiSpecialistChatService.cancelCommands(chatId, reason);
+            }
           }
 
-          // Clear pending commands regardless of response
+          // Clear pending commands
           set({ pendingCommands: null });
 
-          // Add a system message to show cancellation
-          set((state) => ({
-            creationChat: {
-              ...state.creationChat,
-              messages: [
-                ...state.creationChat.messages,
-                {
-                  id: 'cancel-' + Date.now(),
-                  role: 'assistant',
-                  content: `Goal creation cancelled: ${reason}`,
-                  timestamp: new Date(),
-                },
-              ],
-            },
-          }));
+          // Add cancellation message to the appropriate chat
+          const cancelMessage: Message = {
+            id: 'cancel-' + Date.now(),
+            role: 'assistant',
+            content: `Commands cancelled: ${reason}`,
+            timestamp: new Date(),
+          };
+
+          if (chatId === 'overview') {
+            set((state) => ({
+              overviewChat: state.overviewChat ? {
+                ...state.overviewChat,
+                messages: [...state.overviewChat.messages, cancelMessage],
+              } : null,
+            }));
+          } else if (chatId === 'creation') {
+            set((state) => ({
+              creationChat: {
+                ...state.creationChat,
+                messages: [...state.creationChat.messages, cancelMessage],
+              },
+            }));
+          } else if (chatId === 'items' || chatId === 'finances' || chatId === 'actions') {
+            set((state) => ({
+              categoryChats: {
+                ...state.categoryChats,
+                [chatId]: state.categoryChats[chatId] ? {
+                  ...state.categoryChats[chatId],
+                  messages: [...state.categoryChats[chatId].messages, cancelMessage],
+                } : null,
+              },
+            }));
+          }
         } catch (error) {
           console.error('Failed to cancel commands:', error);
           // Clear pending commands on error too
@@ -888,66 +969,105 @@ export const useAppStore = create<AppState>()(
       },
 
       confirmPendingCommands: async () => {
-        const commands = get().pendingCommands;
-        if (!commands || commands.length === 0) {
+        const pending = get().pendingCommands;
+        if (!pending || !pending.commands || pending.commands.length === 0) {
           console.error('No pending commands to confirm');
           return;
         }
 
+        const { chatId, commands } = pending;
+
         try {
-          const token = localStorage.getItem('auth_token');
-          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-          const response = await fetch(`${API_BASE}/ai/overview/chat/confirm-commands`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
-            body: JSON.stringify({ commands }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to confirm commands: ${response.status}`);
+          const isDemo = get().isDemoMode;
+          if (!isDemo) {
+            // Production mode: call the appropriate confirm endpoint
+            if (chatId === 'overview' || chatId === 'creation') {
+              await aiOverviewChatService.confirmCommands(commands);
+            } else if (chatId === 'items' || chatId === 'finances' || chatId === 'actions') {
+              await aiSpecialistChatService.confirmCommands(chatId, commands);
+            }
+          } else {
+            // Demo mode: execute commands locally
+            for (const cmd of commands) {
+              await get().executeChatCommand(cmd);
+            }
           }
 
           // Clear pending commands after successful confirmation
           set({ pendingCommands: null });
 
-          // Refresh goals to show newly created goals
+          // Refresh goals to show changes
           await get().fetchGoals();
 
-          // Add success message
-          set((state) => ({
-            creationChat: {
-              ...state.creationChat,
-              messages: [
-                ...state.creationChat.messages,
-                {
-                  id: 'confirm-' + Date.now(),
-                  role: 'assistant',
-                  content: '✅ Goals created successfully!',
-                  timestamp: new Date(),
-                },
-              ],
-            },
-          }));
+          // Add success message to the appropriate chat
+          const successMessage: Message = {
+            id: 'confirm-' + Date.now(),
+            role: 'assistant',
+            content: '✅ Commands executed successfully!',
+            timestamp: new Date(),
+          };
+
+          if (chatId === 'overview') {
+            set((state) => ({
+              overviewChat: state.overviewChat ? {
+                ...state.overviewChat,
+                messages: [...state.overviewChat.messages, successMessage],
+              } : null,
+            }));
+          } else if (chatId === 'creation') {
+            set((state) => ({
+              creationChat: {
+                ...state.creationChat,
+                messages: [...state.creationChat.messages, successMessage],
+              },
+            }));
+          } else if (chatId === 'items' || chatId === 'finances' || chatId === 'actions') {
+            set((state) => ({
+              categoryChats: {
+                ...state.categoryChats,
+                [chatId]: state.categoryChats[chatId] ? {
+                  ...state.categoryChats[chatId],
+                  messages: [...state.categoryChats[chatId].messages, successMessage],
+                } : null,
+              },
+            }));
+          }
         } catch (error) {
           console.error('Failed to confirm commands:', error);
-          set((state) => ({
-            creationChat: {
-              ...state.creationChat,
-              messages: [
-                ...state.creationChat.messages,
-                {
-                  id: 'error-' + Date.now(),
-                  role: 'assistant',
-                  content: `❌ Failed to create goals: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                  timestamp: new Date(),
-                },
-              ],
-            },
-          }));
+
+          // Add error message to the appropriate chat
+          const errorMessage: Message = {
+            id: 'error-' + Date.now(),
+            role: 'assistant',
+            content: `❌ Failed to execute commands: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            timestamp: new Date(),
+          };
+
+          if (chatId === 'overview') {
+            set((state) => ({
+              overviewChat: state.overviewChat ? {
+                ...state.overviewChat,
+                messages: [...state.overviewChat.messages, errorMessage],
+              } : null,
+            }));
+          } else if (chatId === 'creation') {
+            set((state) => ({
+              creationChat: {
+                ...state.creationChat,
+                messages: [...state.creationChat.messages, errorMessage],
+              },
+            }));
+          } else if (chatId === 'items' || chatId === 'finances' || chatId === 'actions') {
+            set((state) => ({
+              categoryChats: {
+                ...state.categoryChats,
+                [chatId]: state.categoryChats[chatId] ? {
+                  ...state.categoryChats[chatId],
+                  messages: [...state.categoryChats[chatId].messages, errorMessage],
+                } : null,
+              },
+            }));
+          }
         }
       },
 
@@ -997,6 +1117,576 @@ export const useAppStore = create<AppState>()(
             isLoading: false,
           },
         });
+      },
+
+      // Add an assistant message without triggering API call (for Edit action)
+      addAssistantMessage: (mode: 'creation' | 'goal', goalId?: string, content: string) => {
+        const assistantMessage: Message = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content,
+          timestamp: new Date(),
+        };
+
+        if (mode === 'creation') {
+          set((state) => ({
+            creationChat: {
+              ...state.creationChat,
+              messages: [...state.creationChat.messages, assistantMessage],
+            },
+          }));
+        } else if (goalId) {
+          set((state) => ({
+            goalChats: {
+              ...state.goalChats,
+              [goalId]: {
+                messages: [...(state.goalChats[goalId]?.messages || []), assistantMessage],
+                isLoading: false,
+              },
+            },
+          }));
+        }
+      },
+
+      // Mark a proposal message as handled (action button clicked)
+      markProposalHandled: (messageId: string) => {
+        set((state) => ({
+          handledProposals: new Set([...state.handledProposals, messageId]),
+        }));
+      },
+
+      // Check if a proposal message has been handled
+      isProposalHandled: (messageId: string) => {
+        return get().handledProposals.has(messageId);
+      },
+
+      // ========== Overview Chat Actions ==========
+
+      fetchOverviewChat: async () => {
+        try {
+          const isDemo = get().isDemoMode;
+          if (isDemo) {
+            // Demo mode: initialize with empty chat
+            set({
+              overviewChat: {
+                messages: [],
+                isLoading: false,
+              },
+            });
+            return;
+          }
+
+          // Production mode: fetch from API
+          const chat = await chatsService.getOverviewChat();
+          set({
+            overviewChat: {
+              messages: chat.messages.map(m => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                timestamp: new Date(m.timestamp),
+              })),
+              isLoading: false,
+            },
+          });
+        } catch (error) {
+          console.error('Failed to fetch overview chat:', error);
+          // Initialize empty chat on error
+          set({
+            overviewChat: {
+              messages: [],
+              isLoading: false,
+            },
+          });
+        }
+      },
+
+      sendOverviewMessage: async (content: string) => {
+        const isDemo = get().isDemoMode;
+        const streamId = `overview-${Date.now()}`;
+
+        // Add user message
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+
+        set((state) => ({
+          overviewChat: {
+            ...state.overviewChat!,
+            messages: [...(state.overviewChat?.messages || []), userMessage],
+            isLoading: true,
+          },
+          activeStreams: new Set([...state.activeStreams, streamId]),
+        }));
+
+        // Create placeholder for assistant message
+        const assistantMessageId = (Date.now() + 1).toString();
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+        };
+
+        set((state) => ({
+          overviewChat: {
+            ...state.overviewChat!,
+            messages: [...(state.overviewChat?.messages || []), assistantMessage],
+          },
+        }));
+
+        try {
+          if (isDemo) {
+            // Demo mode: use mock service
+            const response = await mockOverviewChatService.chat(content);
+            set((state) => ({
+              overviewChat: {
+                ...state.overviewChat!,
+                messages: state.overviewChat!.messages.map(msg =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: response.content }
+                    : msg
+                ),
+                isLoading: false,
+              },
+              activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
+            }));
+
+            // Execute commands if present
+            if (response.commands?.length > 0) {
+              for (const cmd of response.commands) {
+                if (cmd.type === 'CREATE_GOAL') {
+                  const newGoal = {
+                    ...cmd.data,
+                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    status: 'active',
+                    createdAt: new Date(),
+                  };
+                  set((state) => ({
+                    goals: [...state.goals, newGoal],
+                  }));
+                } else if (cmd.type === 'CREATE_SUBGOAL') {
+                  await get().createSubgoal(cmd.data, cmd.data.parentGoalId || '');
+                }
+              }
+            }
+            return;
+          }
+
+          // Production mode: use streaming service
+          let fullContent = '';
+          let finalChunk: any = {};
+
+          for await (const chunk of aiOverviewChatService.chatStream({ message: content })) {
+            fullContent += chunk.content;
+
+            if (chunk.done) {
+              finalChunk = chunk;
+            }
+
+            set((state) => ({
+              overviewChat: {
+                ...state.overviewChat!,
+                messages: state.overviewChat!.messages.map(msg =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        content: fullContent,
+                        ...(chunk.done && { goalPreview: chunk.goalPreview }),
+                      }
+                    : msg
+                ),
+                ...(chunk.done && { isLoading: false }),
+              },
+            }));
+          }
+
+          set((state) => ({
+            activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
+          }));
+
+          // Handle commands from response
+          if (finalChunk.awaitingConfirmation && finalChunk.commands?.length > 0) {
+            set({
+              pendingCommands: {
+                chatId: 'overview',
+                commands: finalChunk.commands,
+                timestamp: Date.now(),
+              },
+            });
+            return;
+          }
+
+          // Execute non-awaiting commands
+          const commands = finalChunk.commands || [];
+          if (commands.length > 0) {
+            for (const cmd of commands) {
+              if (cmd.type === 'CREATE_SUBGOAL') {
+                await get().createSubgoal(cmd.data, cmd.data.parentGoalId || '');
+              }
+            }
+            await get().fetchGoals();
+          }
+        } catch (error) {
+          console.error('Overview chat error:', error);
+          set((state) => ({
+            overviewChat: {
+              ...state.overviewChat!,
+              messages: state.overviewChat!.messages.map(msg =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: 'Sorry, there was an error processing your message.' }
+                  : msg
+              ),
+              isLoading: false,
+            },
+            activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
+          }));
+        }
+      },
+
+      stopOverviewStream: async () => {
+        try {
+          await aiOverviewChatService.stopStream();
+          set((state) => ({
+            overviewChat: state.overviewChat ? { ...state.overviewChat, isLoading: false } : null,
+            activeStreams: new Set([...state.activeStreams].filter(id => !id.startsWith('overview'))),
+          }));
+        } catch (error) {
+          console.error('Failed to stop overview stream:', error);
+        }
+      },
+
+      // ========== Category Specialist Chat Actions ==========
+
+      fetchCategoryChat: async (categoryId: 'items' | 'finances' | 'actions') => {
+        try {
+          const isDemo = get().isDemoMode;
+          if (isDemo) {
+            // Demo mode: initialize with empty chat
+            set((state) => ({
+              categoryChats: {
+                ...state.categoryChats,
+                [categoryId]: {
+                  messages: [],
+                  isLoading: false,
+                },
+              },
+            }));
+            return;
+          }
+
+          // Production mode: fetch from API
+          const chat = await chatsService.getCategoryChat(categoryId);
+          set((state) => ({
+            categoryChats: {
+              ...state.categoryChats,
+              [categoryId]: {
+                messages: chat.messages.map(m => ({
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  timestamp: new Date(m.timestamp),
+                })),
+                isLoading: false,
+              },
+            },
+          }));
+        } catch (error) {
+          console.error(`Failed to fetch ${categoryId} chat:`, error);
+          // Initialize empty chat on error
+          set((state) => ({
+            categoryChats: {
+              ...state.categoryChats,
+              [categoryId]: {
+                messages: [],
+                isLoading: false,
+              },
+            },
+          }));
+        }
+      },
+
+      sendCategoryMessage: async (categoryId: 'items' | 'finances' | 'actions', content: string) => {
+        const isDemo = get().isDemoMode;
+        const streamId = `${categoryId}-${Date.now()}`;
+
+        // Add user message
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+
+        set((state) => ({
+          categoryChats: {
+            ...state.categoryChats,
+            [categoryId]: {
+              ...state.categoryChats[categoryId]!,
+              messages: [...(state.categoryChats[categoryId]?.messages || []), userMessage],
+              isLoading: true,
+            },
+          },
+          activeStreams: new Set([...state.activeStreams, streamId]),
+        }));
+
+        // Create placeholder for assistant message
+        const assistantMessageId = (Date.now() + 1).toString();
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+        };
+
+        set((state) => ({
+          categoryChats: {
+            ...state.categoryChats,
+            [categoryId]: {
+              ...state.categoryChats[categoryId]!,
+              messages: [...(state.categoryChats[categoryId]?.messages || []), assistantMessage],
+            },
+          },
+        }));
+
+        try {
+          if (isDemo) {
+            // Demo mode: use mock service
+            const response = await mockOverviewChatService.chat(content);
+            set((state) => ({
+              categoryChats: {
+                ...state.categoryChats,
+                [categoryId]: {
+                  ...state.categoryChats[categoryId]!,
+                  messages: state.categoryChats[categoryId]!.messages.map(msg =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: response.content }
+                      : msg
+                  ),
+                  isLoading: false,
+                },
+              },
+              activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
+            }));
+            return;
+          }
+
+          // Production mode: use streaming service
+          let fullContent = '';
+          let finalChunk: any = {};
+
+          for await (const chunk of aiSpecialistChatService.chatStream(categoryId, { message: content })) {
+            fullContent += chunk.content;
+
+            if (chunk.done) {
+              finalChunk = chunk;
+            }
+
+            set((state) => ({
+              categoryChats: {
+                ...state.categoryChats,
+                [categoryId]: {
+                  ...state.categoryChats[categoryId]!,
+                  messages: state.categoryChats[categoryId]!.messages.map(msg =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: fullContent }
+                      : msg
+                  ),
+                  ...(chunk.done && { isLoading: false }),
+                },
+              },
+            }));
+          }
+
+          set((state) => ({
+            activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
+          }));
+
+          // Handle commands from response
+          if (finalChunk.awaitingConfirmation && finalChunk.commands?.length > 0) {
+            set({
+              pendingCommands: {
+                chatId: categoryId,
+                commands: finalChunk.commands,
+                timestamp: Date.now(),
+              },
+            });
+            return;
+          }
+
+          // Execute commands
+          const commands = finalChunk.commands || [];
+          if (commands.length > 0) {
+            for (const cmd of commands) {
+              await get().executeChatCommand(cmd);
+            }
+            await get().fetchGoals();
+          }
+        } catch (error) {
+          console.error(`${categoryId} chat error:`, error);
+          set((state) => ({
+            categoryChats: {
+              ...state.categoryChats,
+              [categoryId]: {
+                ...state.categoryChats[categoryId]!,
+                messages: state.categoryChats[categoryId]!.messages.map(msg =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: 'Sorry, there was an error processing your message.' }
+                    : msg
+                ),
+                isLoading: false,
+              },
+            },
+            activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
+          }));
+        }
+      },
+
+      stopCategoryStream: async (categoryId: 'items' | 'finances' | 'actions') => {
+        try {
+          await aiSpecialistChatService.stopStream(categoryId);
+          set((state) => ({
+            categoryChats: {
+              ...state.categoryChats,
+              [categoryId]: state.categoryChats[categoryId]
+                ? { ...state.categoryChats[categoryId], isLoading: false }
+                : null,
+            },
+            activeStreams: new Set([...state.activeStreams].filter(id => !id.startsWith(categoryId))),
+          }));
+        } catch (error) {
+          console.error(`Failed to stop ${categoryId} stream:`, error);
+        }
+      },
+
+      // ========== Stream Management Actions ==========
+
+      setActiveStream: (streamId: string, active: boolean) => {
+        set((state) => {
+          const newStreams = new Set(state.activeStreams);
+          if (active) {
+            newStreams.add(streamId);
+          } else {
+            newStreams.delete(streamId);
+          }
+          return { activeStreams: newStreams };
+        });
+      },
+
+      isStreamActive: (streamId: string) => {
+        return get().activeStreams.has(streamId);
+      },
+
+      // ========== Message Editing Actions ==========
+
+      editMessage: async (chatType: 'overview' | 'category' | 'goal', chatId: string, messageId: string, newContent: string) => {
+        try {
+          const isDemo = get().isDemoMode;
+          if (!isDemo) {
+            // Production mode: call the edit endpoint
+            let targetChatId: string;
+            if (chatType === 'overview') {
+              targetChatId = 'overview';
+            } else if (chatType === 'category') {
+              targetChatId = chatId; // chatId is the category
+            } else {
+              targetChatId = chatId; // chatId is the goalId
+            }
+
+            await chatsService.editMessage(targetChatId, messageId, newContent);
+          }
+
+          // Remove all messages after the edited one
+          if (chatType === 'overview') {
+            set((state) => {
+              if (!state.overviewChat) return state;
+              const msgIndex = state.overviewChat.messages.findIndex(m => m.id === messageId);
+              if (msgIndex === -1) return state;
+              return {
+                overviewChat: {
+                  ...state.overviewChat,
+                  messages: state.overviewChat.messages.slice(0, msgIndex + 1).map(msg =>
+                    msg.id === messageId ? { ...msg, content: newContent } : msg
+                  ),
+                },
+              };
+            });
+          } else if (chatType === 'category') {
+            set((state) => {
+              const chat = state.categoryChats[chatId as keyof typeof state.categoryChats];
+              if (!chat) return state;
+              const msgIndex = chat.messages.findIndex(m => m.id === messageId);
+              if (msgIndex === -1) return state;
+              return {
+                categoryChats: {
+                  ...state.categoryChats,
+                  [chatId]: {
+                    ...chat,
+                    messages: chat.messages.slice(0, msgIndex + 1).map(msg =>
+                      msg.id === messageId ? { ...msg, content: newContent } : msg
+                    ),
+                  },
+                },
+              };
+            });
+          } else if (chatType === 'goal') {
+            set((state) => {
+              const chat = state.goalChats[chatId];
+              if (!chat) return state;
+              const msgIndex = chat.messages.findIndex(m => m.id === messageId);
+              if (msgIndex === -1) return state;
+              return {
+                goalChats: {
+                  ...state.goalChats,
+                  [chatId]: {
+                    ...chat,
+                    messages: chat.messages.slice(0, msgIndex + 1).map(msg =>
+                      msg.id === messageId ? { ...msg, content: newContent } : msg
+                    ),
+                  },
+                },
+              };
+            });
+          }
+
+          // Re-send the message to get new AI response
+          // This will trigger the appropriate send message action
+          if (chatType === 'overview') {
+            await get().sendOverviewMessage(newContent);
+          } else if (chatType === 'category') {
+            await get().sendCategoryMessage(chatId as 'items' | 'finances' | 'actions', newContent);
+          } else if (chatType === 'goal') {
+            await get().sendGoalMessage(chatId, newContent);
+          }
+        } catch (error) {
+          console.error('Failed to edit message:', error);
+        }
+      },
+
+      // ========== Helper: Execute Chat Commands ==========
+      executeChatCommand: async (command: ChatCommand) => {
+        const { type, goalId, data } = command;
+
+        switch (type) {
+          case 'ADD_TASK':
+            await get().addTask(goalId, data.title);
+            break;
+          case 'TOGGLE_TASK':
+            await get().toggleTask(goalId, data.taskId);
+            break;
+          case 'UPDATE_TITLE':
+            await get().updateGoal(goalId, { title: data.title });
+            break;
+          case 'UPDATE_FILTERS':
+            await get().updateGoal(goalId, { filters: data.filters });
+            break;
+          case 'ARCHIVE_GOAL':
+            await get().archiveGoal(goalId);
+            break;
+        }
       },
 
       confirmGoalCreation: async () => {
@@ -1096,7 +1786,7 @@ export const useAppStore = create<AppState>()(
           const category = get().activeCategory;
           const filters = category !== 'all' ? { type: category } : undefined;
           const goals = await goalsService.getAll(filters);
-          set({ goals, isLoading: false });
+          set({ goals, isLoading: false, goalsVersion: get().goalsVersion + 1 });
         } catch (error: any) {
           console.error('Failed to fetch goals:', error);
           // Auto-enable demo mode on 401 Unauthorized

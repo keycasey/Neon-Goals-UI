@@ -261,7 +261,7 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
           {candidate.rating && (
             <div className="flex items-center gap-1 text-warning">
               <Star className="w-4 h-4 fill-current" />
-              <span className="font-medium text-sm">{candidate.rating}</span>
+              <span className="font-medium text-sm">{Math.round(candidate.rating * 10) / 10}</span>
             </div>
           )}
         </div>
@@ -278,6 +278,20 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
               </span>
             ))}
           </div>
+        )}
+
+        {/* View Button - only show for focused shortlist items (non-active but has swipe handler) */}
+        {!isActive && onSwipe && 'url' in candidate && (candidate as any).url && (
+          <a
+            href={(candidate as any).url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-lg bg-gradient-neon text-primary-foreground font-medium text-sm transition-all hover:scale-105 neon-glow-cyan"
+          >
+            View
+            <ExternalLink className="w-4 h-4" />
+          </a>
         )}
       </div>
     </motion.div>

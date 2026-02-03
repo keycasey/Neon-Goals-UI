@@ -94,18 +94,6 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
 
           {/* Top Right Actions */}
           <div className="flex gap-2">
-            {/* Subgoals Pill */}
-            {subgoals.length > 0 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); toggleExpanded(); }}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background/80 backdrop-blur-sm text-primary font-medium text-xs transition-all hover:bg-primary/20"
-              >
-                <Target className="w-3.5 h-3.5" />
-                {subgoals.length} subgoals
-                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-            )}
-
             {/* Quick Actions */}
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button

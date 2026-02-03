@@ -271,7 +271,7 @@ const ShortlistCard: React.FC<ShortlistCardProps> = ({
           {candidate.rating && (
             <span className="text-xs text-warning flex items-center gap-0.5">
               <Star className="w-3 h-3 fill-current" />
-              {candidate.rating}
+              {Math.round(candidate.rating * 10) / 10}
             </span>
           )}
         </div>

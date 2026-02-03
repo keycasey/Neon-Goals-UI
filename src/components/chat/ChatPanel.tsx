@@ -40,24 +40,33 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Handle edit - add a message asking what to change and focus the input
-  const handleEdit = async () => {
+  // Handle edit - add an AI message asking what to change and focus the input
+  const handleEdit = (messageId?: string) => {
     const editMessage = "What would you like to change?";
-    if (mode === 'creation') {
-      await sendCreationMessage(editMessage);
-    } else if (goalId) {
-      await sendGoalMessage(goalId, editMessage);
+    // Mark this proposal as handled so buttons are disabled
+    if (messageId) {
+      markProposalHandled(messageId);
     }
+    // Add assistant message directly without triggering API
+    addAssistantMessage(mode, goalId, editMessage);
     inputRef.current?.focus();
   };
 
   // Handle cancel - call the cancel endpoint
-  const handleCancel = () => {
+  const handleCancel = (messageId?: string) => {
+    // Mark this proposal as handled so buttons are disabled
+    if (messageId) {
+      markProposalHandled(messageId);
+    }
     cancelPendingCommands();
   };
 
   // Handle confirm - execute the pending commands
-  const handleConfirm = () => {
+  const handleConfirm = (messageId?: string) => {
+    // Mark this proposal as handled so buttons are disabled
+    if (messageId) {
+      markProposalHandled(messageId);
+    }
     if (mode === 'creation') {
       confirmPendingCommands();
     } else {
@@ -78,6 +87,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     cancelPendingCommands,
     confirmPendingCommands,
     pendingCommands,
+    addAssistantMessage,
+    markProposalHandled,
   } = useAppStore();
 
   const chat = mode === 'creation' ? creationChat : goalChats[goalId || ''] || { messages: [], isLoading: false };
@@ -249,9 +260,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 <MessageBubble
                   key={message.id}
                   message={message}
-                  onConfirm={message.awaitingConfirmation ? handleConfirm : undefined}
-                  onEdit={message.awaitingConfirmation ? handleEdit : undefined}
-                  onCancel={message.awaitingConfirmation ? handleCancel : undefined}
+                  messageId={message.id}
+                  onConfirm={message.awaitingConfirmation ? () => handleConfirm(message.id) : undefined}
+                  onEdit={message.awaitingConfirmation ? () => handleEdit(message.id) : undefined}
+                  onCancel={message.awaitingConfirmation ? () => handleCancel(message.id) : undefined}
                   isExiting={isExitingGoal}
                 />
               ))}
@@ -328,14 +340,18 @@ const MessageBubble = React.forwardRef<
   HTMLDivElement,
   {
     message: Message;
+    messageId?: string;
     onConfirm?: () => void;
     onEdit?: () => void;
     onCancel?: () => void;
     isExiting?: boolean;
   }
->(({ message, onConfirm, onEdit, onCancel, isExiting }, ref) => {
+>(({ message, messageId, onConfirm, onEdit, onCancel, isExiting }, ref) => {
   const isUser = message.role === 'user';
   const hasGoalPreview = message.goalPreview && message.awaitingConfirmation;
+  // Get isProposalHandled from store
+  const { isProposalHandled } = useAppStore();
+  const isHandled = messageId ? isProposalHandled(messageId) : false;
 
   // Render markdown preview with buttons instead of user chat bubbles
   if (hasGoalPreview) {
@@ -364,8 +380,12 @@ const MessageBubble = React.forwardRef<
             {/* Cancel Button */}
             <button
               onClick={onCancel}
+              disabled={isHandled}
               className={cn(
-                "group relative flex items-center gap-2 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 font-medium text-sm transition-all",
+                "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                isHandled
+                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                  : "bg-destructive/20 text-destructive hover:bg-destructive/30",
                 // Mobile: full width with icon and text
                 "w-full px-4 py-2",
                 // Desktop: centered icon, expand and slide left on hover
@@ -380,8 +400,12 @@ const MessageBubble = React.forwardRef<
             {/* Edit Button */}
             <button
               onClick={onEdit}
+              disabled={isHandled}
               className={cn(
-                "group relative flex items-center gap-2 rounded-lg bg-muted text-foreground hover:bg-muted/70 font-medium text-sm transition-all",
+                "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                isHandled
+                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                  : "bg-muted text-foreground hover:bg-muted/70",
                 // Mobile: full width with icon and text
                 "w-full px-4 py-2",
                 // Desktop: centered icon, expand and slide left on hover
@@ -396,8 +420,12 @@ const MessageBubble = React.forwardRef<
             {/* Confirm Button */}
             <button
               onClick={onConfirm}
+              disabled={isHandled}
               className={cn(
-                "group relative flex items-center gap-2 rounded-lg bg-gradient-neon text-primary-foreground font-medium text-sm transition-all neon-glow-cyan",
+                "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                isHandled
+                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                  : "bg-gradient-neon text-primary-foreground neon-glow-cyan",
                 // Mobile: full width with icon and text
                 "w-full px-4 py-2",
                 // Desktop: centered icon, expand and slide left on hover

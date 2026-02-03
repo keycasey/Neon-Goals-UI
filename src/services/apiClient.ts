@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_BASE_URL } from '@/lib/apiConfig';
 
 class ApiClient {
   private baseUrl: string;
@@ -98,6 +98,26 @@ class ApiClient {
 
   async delete<T>(endpoint: string, includeAuth = true): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' }, includeAuth);
+  }
+
+  /**
+   * Streaming POST request for Server-Sent Events (SSE)
+   * Returns a readable stream that emits SSE data
+   */
+  async postStream(endpoint: string, data?: any, includeAuth = true): ReadableStream {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.getHeaders(includeAuth),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Stream error: ${response.statusText}`);
+    }
+
+    return response.body!;
   }
 }
 

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface ScannerPlaceholderProps {
-  status: 'initiating' | 'decoding' | 'acquired';
+  status: 'initiating' | 'decoding' | 'acquired' | 'no_candidates';
   signalCount?: number;
   className?: string;
 }
@@ -34,6 +34,8 @@ export const ScannerPlaceholder: React.FC<ScannerPlaceholderProps> = ({
         return 'DECODING RESULTS...';
       case 'acquired':
         return 'TARGET ACQUIRED';
+      case 'no_candidates':
+        return 'NO NEW CANDIDATES';
       default:
         return 'SCANNING...';
     }
@@ -49,8 +51,8 @@ export const ScannerPlaceholder: React.FC<ScannerPlaceholderProps> = ({
   return (
     <div className={cn("relative w-full h-full overflow-hidden bg-background", className)}>
       {/* Static Noise Background */}
-      {status !== 'acquired' && (
-        <div className="absolute inset-0">
+      {status !== 'acquired' && status !== 'no_candidates' && (
+        <div className="absolute inset-0 z-10">
           {/* Base noise layer */}
           <div
             className="absolute inset-0 opacity-20"
@@ -108,7 +110,7 @@ export const ScannerPlaceholder: React.FC<ScannerPlaceholderProps> = ({
       )}
 
       {/* Content Overlay */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-0">
         {/* Signal count (decoding state) */}
         {getSignalText() && (
           <motion.div
@@ -125,10 +127,10 @@ export const ScannerPlaceholder: React.FC<ScannerPlaceholderProps> = ({
         {/* Main message */}
         <motion.div
           animate={{
-            opacity: status === 'acquired' ? [0.8, 1, 0.8] : [0.7, 1, 0.7],
+            opacity: status === 'acquired' || status === 'no_candidates' ? [0.8, 1, 0.8] : [0.7, 1, 0.7],
           }}
           transition={{
-            duration: status === 'acquired' ? 1.5 : 0.8,
+            duration: status === 'acquired' || status === 'no_candidates' ? 1.5 : 0.8,
             repeat: Infinity,
             repeatType: 'mirror',
           }}
@@ -136,6 +138,8 @@ export const ScannerPlaceholder: React.FC<ScannerPlaceholderProps> = ({
             "px-6 py-3 rounded-xl font-mono font-bold text-lg tracking-wider",
             status === 'acquired'
               ? "bg-primary/30 text-primary border-2 border-primary neon-glow-cyan"
+              : status === 'no_candidates'
+              ? "bg-muted/50 text-muted-foreground border border-muted"
               : "bg-background/80 text-foreground border border-border/50"
           )}
         >
@@ -143,7 +147,7 @@ export const ScannerPlaceholder: React.FC<ScannerPlaceholderProps> = ({
         </motion.div>
 
         {/* Progress indicator dots (initiating and decoding) */}
-        {status !== 'acquired' && (
+        {status !== 'acquired' && status !== 'no_candidates' && (
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => (
               <motion.div

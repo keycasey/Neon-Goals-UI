@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { API_BASE_URL } from '@/lib/apiConfig';
 
 export interface LoginResponse {
   access_token: string;
@@ -10,8 +11,6 @@ export interface LoginResponse {
     githubLogin?: string;
   };
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const authService = {
   async getGitHubAuthUrl() {
