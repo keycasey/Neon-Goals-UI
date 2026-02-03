@@ -1120,7 +1120,7 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
 // Subgoals Section - shared across all goal types
 const SubgoalsSection: React.FC<{ goal: Goal }> = ({ goal }) => {
   const { drillIntoGoal } = useAppStore();
-  
+
   if (!goal.subgoals || goal.subgoals.length === 0) {
     return null;
   }
