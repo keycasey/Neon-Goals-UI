@@ -134,8 +134,8 @@ const Settings = () => {
 
           {/* Dropdown Panel */}
           {accountDropdownOpen && (
-            <div className="fixed top-16 bottom-0 right-0 w-[400px] z-[61] bg-background border-l border-border overflow-y-auto">
-              <div className="p-6">
+            <div className="fixed inset-0 lg:top-16 lg:bottom-0 lg:right-0 lg:left-auto lg:w-[400px] z-[80] bg-background lg:border-l border-border overflow-y-auto">
+              <div className="p-6 pt-20 lg:pt-6">
                 <button
                   onClick={() => setAccountDropdownOpen(false)}
                   className="absolute top-6 right-6 p-2 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -143,8 +143,6 @@ const Settings = () => {
                 >
                   ✕
                 </button>
-
-                <h2 className="font-heading text-2xl font-bold gradient-text mb-6">Account</h2>
 
                 <div className="glass-card rounded-2xl p-4 mb-6">
                   <div className="flex items-center gap-3">
@@ -176,22 +174,8 @@ const Settings = () => {
       )}
 
       {/* Content - centered */}
-      <div className="pt-16 min-h-screen">
-        <div className="max-w-4xl mx-auto p-4 lg:p-8">
-          {/* Page Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <h2 className="font-heading text-3xl font-bold gradient-text mb-2">
-              Customize Your Experience
-            </h2>
-            <p className="text-muted-foreground">
-              Manage your account settings and preferences
-            </p>
-          </motion.div>
-
+      <div className="fixed inset-0 lg:static lg:pt-16 lg:min-h-screen overflow-y-auto z-[80] lg:z-auto bg-background">
+        <div className="max-w-4xl mx-auto p-4 lg:p-8 pt-20 lg:pt-4">
           {/* Settings Sections */}
           <div className="space-y-6">
             {/* Profile Section */}

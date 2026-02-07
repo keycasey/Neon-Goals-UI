@@ -48,6 +48,7 @@ interface AppState {
   activeCategory: GoalCategory;
   isChatMinimized: boolean;
   isDemoMode: boolean; // Demo mode flag - offline mode with mock data
+  chatPulseTrigger: number; // Counter to trigger chat pulse animation
 
   // Data
   goals: Goal[];
@@ -84,6 +85,7 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void;
   setActiveCategory: (category: GoalCategory) => void;
   toggleChatMinimized: () => void;
+  triggerChatPulse: () => void;
 
   // Goal CRUD (local state updates - API calls happen separately)
   addGoal: (goal: Goal) => void;
@@ -175,6 +177,7 @@ export const useAppStore = create<AppState>()(
       activeCategory: 'all',
       isChatMinimized: false,
       isDemoMode: false,
+      chatPulseTrigger: 0,
 
       goals: [],
       goalsVersion: 0,
@@ -277,6 +280,8 @@ export const useAppStore = create<AppState>()(
       setActiveCategory: (category) => set({ activeCategory: category }),
 
       toggleChatMinimized: () => set((state) => ({ isChatMinimized: !state.isChatMinimized })),
+
+      triggerChatPulse: () => set((state) => ({ chatPulseTrigger: state.chatPulseTrigger + 1 })),
 
       setDemoMode: (isDemoMode) => set({ isDemoMode }),
 
@@ -498,9 +503,9 @@ export const useAppStore = create<AppState>()(
                             ? {
                                 ...msg,
                                 content: fullContent,
-                                ...(chunk.done && (chunk as any).goalPreview && {
-                                  goalPreview: (chunk as any).goalPreview,
-                                  awaitingConfirmation: (chunk as any).awaitingConfirmation,
+                                ...(chunk.done && chunk.goalPreview && {
+                                  goalPreview: chunk.goalPreview,
+                                  awaitingConfirmation: chunk.awaitingConfirmation,
                                 }),
                               }
                             : msg
@@ -527,7 +532,7 @@ export const useAppStore = create<AppState>()(
               }
 
               // Extract commands from the response (if any)
-              commands = finalChunk.commands || (fullResponse as any)?.commands || [];
+              commands = finalChunk.commands || [];
 
               // Execute commands from the response
               if (commands.length > 0) {

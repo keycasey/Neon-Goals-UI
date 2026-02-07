@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Pencil, Loader2, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { goalsService } from '@/services/goalsService';
+import { useAppStore } from '@/store/useAppStore';
 import type { ScrapeJob, ScrapeJobStatus } from '@/types/goals';
 import type { ItemGoal } from '@/types/goals';
 
@@ -39,6 +40,7 @@ const statusConfig: Record<ScrapeJobStatus, { icon: React.ElementType; color: st
 const POLL_INTERVAL = 3000; // Poll every 3 seconds
 
 export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFiltersUpdate, onRefresh, onScrapeComplete }) => {
+  const { isChatMinimized, toggleChatMinimized, sendGoalMessage, triggerChatPulse } = useAppStore();
   const [scrapeJobs, setScrapeJobs] = useState<ScrapeJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -217,12 +219,17 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
           {/* Edit Filters Button */}
           <button
             onClick={() => {
-              setIsEditing(!isEditing);
-              setFiltersJson(JSON.stringify(goal.searchFilters || {}, null, 2));
-              setJsonError(null);
+              // If chat is minimized, open it
+              if (isChatMinimized) {
+                toggleChatMinimized();
+              }
+              // Send a message to the chat as the user
+              sendGoalMessage(goal.id, 'I want to update my search.');
+              // Trigger pulse animation to draw attention
+              triggerChatPulse();
             }}
             className="p-2 rounded-lg bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-            aria-label="Edit search filters"
+            aria-label="Edit search filters via chat"
           >
             <Pencil className="w-4 h-4" />
           </button>

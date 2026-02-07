@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, TrendingUp, CheckCircle2, Circle, Plus, Layers, Scan, ChevronRight, AlertCircle } from 'lucide-react';
+import { ExternalLink, TrendingUp, CheckCircle2, Circle, Plus, Layers, Scan, ChevronRight, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import { SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
@@ -13,7 +13,7 @@ import { NestedProgressBar } from './NestedProgressBar';
 import { ComponentMatrix } from './ComponentMatrix';
 import { GoalBreadcrumb } from './GoalBreadcrumb';
 import { getProgressBreakdown, isFullyComplete } from '@/lib/progressCalculator';
-import type { Goal, ItemGoal, FinanceGoal, ActionGoal, ProductCandidate } from '@/types/goals';
+import type { Goal, ItemGoal, FinanceGoal, ActionGoal, GroupGoal, ProductCandidate } from '@/types/goals';
 
 interface GoalDetailViewProps {
   goal: Goal;
@@ -191,18 +191,6 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
         />
       </div>
 
-      {/* Close Button */}
-      <motion.button
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.8 }}
-        transition={{ ...springConfig, delay: 0.2 }}
-        onClick={handleClose}
-        className="absolute top-14 right-4 z-10 p-3 rounded-xl glass-card neon-border text-foreground hover:neon-glow-cyan transition-all"
-        aria-label="Close"
-      >
-        <X className="w-5 h-5" />
-      </motion.button>
 
       {/* Goal Details Content - respects sidebar handle on desktop */}
       <AnimatePresence mode="wait" custom={navigationDirection}>
@@ -218,8 +206,8 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
             left: isDesktop ? SIDEBAR_HANDLE_WIDTH : 0,
           }}
           className={cn(
-            "absolute top-20 bottom-0 overflow-y-auto p-6 lg:p-8 scrollbar-neon",
-            isChatMinimized ? "right-0" : "lg:right-[416px]"
+            "absolute top-20 bottom-0 right-0 overflow-y-auto p-6 lg:p-8 scrollbar-neon",
+            !isChatMinimized && "lg:right-[416px]"
           )}
         >
           <motion.div
@@ -231,6 +219,7 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
             {goal.type === 'item' && <ItemGoalDetail goal={goal as ItemGoal} />}
             {goal.type === 'finance' && <FinanceGoalDetail goal={goal as FinanceGoal} />}
             {goal.type === 'action' && <ActionGoalDetail goal={goal as ActionGoal} />}
+            {goal.type === 'group' && <GroupGoalDetail goal={goal as GroupGoal} />}
           </motion.div>
         </motion.div>
       </AnimatePresence>
@@ -273,6 +262,12 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
       productImage: latestGoal.productImage,
       statusBadge: latestGoal.statusBadge,
       justCompletedScrape,
+      // Log retailer names for debugging
+      candidatesRetailers: latestGoal.candidates?.map(c => ({ retailer: c.retailer, name: c.name })) || [],
+      // Log candidate IDs to check for duplicates
+      candidateIds: latestGoal.candidates?.map(c => c.id) || [],
+      shortlistedIds: (latestGoal as ItemGoal).shortlistedCandidates?.map(c => c.id) || [],
+      deniedIds: (latestGoal as ItemGoal).deniedCandidates?.map(c => c.id) || [],
     });
 
     // Keep current selectedCandidate if it still exists in candidates, otherwise sync with store
@@ -444,7 +439,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
   const displayRetailer = selectedCandidate?.retailer || latestGoal.retailerName;
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full lg:max-w-3xl">
       {/* Scanner Mode Overlay - Using new Digital Workbench */}
       <AnimatePresence>
         {isScannerOpen && latestGoal.candidates && (
@@ -529,32 +524,17 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
           </motion.div>
         )}
 
-        {/* Stack Counter Badge */}
-        {hasCandidates && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 rounded-xl glass-card neon-border cursor-pointer hover:scale-105 transition-transform"
-            onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); }}
-          >
-            <Scan className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">
-              {candidateCount} Candidates
-            </span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </motion.div>
-        )}
 
-        {/* Scanner Mode Hint */}
+        {/* Scanner Mode Hint - Bottom Bar */}
         {hasCandidates && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur-sm text-sm text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 px-4 py-3 bg-background/90 backdrop-blur-sm text-sm font-medium text-foreground border-t border-border"
           >
             <Layers className="w-4 h-4" />
-            Click to open Digital Workbench
+            Tap to Open Scanner
           </motion.div>
         )}
       </motion.div>
@@ -571,36 +551,47 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
 
         {/* Price Card */}
         <motion.div variants={itemVariants} className="glass-card p-6 neon-border">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Row 1, Col 1: Price */}
+            <div className="text-center">
               <p className="text-sm text-muted-foreground mb-1">Best Price</p>
               <p className="text-4xl font-heading font-bold neon-text-cyan">
                 ${displayPrice.toLocaleString()}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Available at {displayRetailer}
+            </div>
+
+            {/* Row 1, Col 2: Available at */}
+            <div className="flex flex-col justify-end text-center">
+              <p className="text-sm text-muted-foreground">Available at</p>
+              <p className="text-lg font-medium text-foreground">
+                {displayRetailer}
               </p>
             </div>
-            <div className="flex gap-3">
-              {hasCandidates && (
-                <button
-                  onClick={() => setIsScannerOpen(true)}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/50 text-foreground font-medium transition-all hover:bg-muted hover:scale-105"
-                >
-                  <Scan className="w-5 h-5" />
-                  Scan
-                </button>
-              )}
-              <a
-                href={selectedCandidate?.url || latestGoal.retailerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-neon text-primary-foreground font-semibold transition-all hover:scale-105 neon-glow-cyan"
+
+            {/* Row 2, Col 1: Scan button */}
+            {hasCandidates && (
+              <button
+                onClick={() => setIsScannerOpen(true)}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted/50 text-foreground font-medium transition-all hover:bg-muted hover:scale-105"
               >
-                Purchase Now
-                <ExternalLink className="w-5 h-5" />
-              </a>
-            </div>
+                <Scan className="w-5 h-5" />
+                Scan
+              </button>
+            )}
+
+            {/* Row 2, Col 2: Buy button */}
+            <a
+              href={selectedCandidate?.url || latestGoal.retailerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-neon text-primary-foreground font-semibold transition-all hover:scale-105 neon-glow-cyan",
+                !hasCandidates && "col-span-2"
+              )}
+            >
+              Buy
+              <ExternalLink className="w-5 h-5" />
+            </a>
           </div>
         </motion.div>
 
@@ -764,7 +755,7 @@ const FinanceGoalDetail: React.FC<{ goal: FinanceGoal }> = ({ goal }) => {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full lg:max-w-3xl">
       {/* Header */}
       <motion.div variants={itemVariants} className="flex items-center gap-4 mb-8">
         <div className="w-16 h-16 rounded-2xl bg-gradient-sunset flex items-center justify-center text-3xl">
@@ -950,7 +941,7 @@ const ActionGoalDetail: React.FC<{ goal: ActionGoal }> = ({ goal }) => {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full lg:max-w-3xl">
       {/* Header */}
       <motion.div variants={itemVariants} className="mb-8">
         <span className="badge-success mb-2 inline-block">Action Goal</span>
@@ -1162,5 +1153,149 @@ const SubgoalsSection: React.FC<{ goal: Goal }> = ({ goal }) => {
         ))}
       </div>
     </motion.div>
+  );
+};
+
+const GroupGoalDetail: React.FC<{ goal: GroupGoal }> = ({ goal }) => {
+  const { drillIntoGoal } = useAppStore();
+
+  // Navigate to subgoal detail with drill-down animation
+  const handleSubgoalClick = (subgoalId: string) => {
+    drillIntoGoal(subgoalId);
+  };
+
+  // Preview components for each goal type
+  const ItemPreview = ({ item }: { item: ItemGoal }) => (
+    <div className="flex items-center gap-4">
+      {item.productImage && (
+        <img src={item.productImage} className="w-16 h-16 rounded-lg object-cover neon-border" alt={item.title} />
+      )}
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium text-foreground truncate">{item.title}</h3>
+        <p className="text-sm text-primary font-bold">${item.bestPrice?.toLocaleString()}</p>
+      </div>
+      <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+    </div>
+  );
+
+  const FinancePreview = ({ finance }: { finance: FinanceGoal }) => (
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 rounded-lg bg-gradient-sunset flex items-center justify-center text-2xl flex-shrink-0">
+        {finance.institutionIcon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium text-foreground truncate">{finance.title}</h3>
+        <p className="text-sm text-muted-foreground">${finance.currentBalance?.toLocaleString()} / ${finance.targetBalance?.toLocaleString()}</p>
+      </div>
+      <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+    </div>
+  );
+
+  const ActionPreview = ({ action }: { action: ActionGoal }) => (
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 rounded-full border-4 border-primary/30 flex items-center justify-center flex-shrink-0">
+        <span className="text-sm font-bold text-primary">{Math.round(action.completionPercentage)}%</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium text-foreground truncate">{action.title}</h3>
+        <p className="text-sm text-muted-foreground">
+          {action.tasks?.filter(t => t.completed).length || 0} / {action.tasks?.length || 0} tasks
+        </p>
+      </div>
+      <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+    </div>
+  );
+
+  const GroupPreview = ({ group }: { group: GroupGoal }) => (
+    <div className="flex items-center gap-4">
+      <div className={cn(
+        "w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0 neon-border",
+        "bg-gradient-to-br", group.color || "from-cyan-500/20 to-purple-500/20"
+      )}>
+        {group.icon || '📦'}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium text-foreground truncate">{group.title}</h3>
+        <p className="text-sm text-muted-foreground">{group.subgoals?.length || 0} items</p>
+      </div>
+      <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+    </div>
+  );
+
+  return (
+    <div className="w-full lg:max-w-3xl">
+      {/* Header with group icon and title */}
+      <motion.div variants={itemVariants} className="mb-8">
+        <div className={cn(
+          "w-20 h-20 rounded-2xl flex items-center justify-center text-6xl mb-4",
+          "bg-gradient-to-br neon-border",
+          goal.color || "from-cyan-500/20 to-purple-500/20"
+        )}>
+          {goal.icon || '📦'}
+        </div>
+        <span className="badge-info mb-2 inline-block">Group Goal</span>
+        <h1 className="font-heading text-3xl lg:text-4xl font-bold text-foreground">
+          {goal.title}
+        </h1>
+        <p className="text-lg text-muted-foreground mt-2">{goal.description}</p>
+      </motion.div>
+
+      {/* Progress Card */}
+      <motion.div variants={itemVariants} className="glass-card p-6 neon-border mb-6">
+        <p className="text-sm text-muted-foreground mb-2">Overall Progress</p>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="h-3 rounded-full bg-background/50 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${goal.progress}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                className="h-full bg-gradient-to-r from-cyan-500 to-lime-400 neon-glow-cyan"
+              />
+            </div>
+          </div>
+          <span className="text-2xl font-bold neon-text-cyan min-w-[4rem] text-right">
+            {Math.round(goal.progress)}%
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {goal.subgoals?.filter(s => s.status === 'completed').length || 0} of {goal.subgoals?.length || 0} items completed
+        </p>
+      </motion.div>
+
+      {/* Child Goals Grid */}
+      <motion.div variants={containerVariants} className="space-y-4">
+        <h2 className="font-heading text-xl font-semibold text-foreground">Items in this Group</h2>
+
+        <div className="grid gap-4">
+          {(goal.subgoals || []).map((subgoal, index) => (
+            <motion.div
+              key={subgoal.id}
+              variants={itemVariants}
+              className={cn(
+                "glass-card p-4 neon-border cursor-pointer hover:neon-glow-cyan transition-all",
+                subgoal.status === 'completed' && "opacity-60"
+              )}
+              onClick={() => handleSubgoalClick(subgoal.id)}
+              whileHover={{ scale: 1.02 }}
+            >
+              {/* Render preview based on subgoal type */}
+              {subgoal.type === 'item' && <ItemPreview item={subgoal as ItemGoal} />}
+              {subgoal.type === 'finance' && <FinancePreview finance={subgoal as FinanceGoal} />}
+              {subgoal.type === 'action' && <ActionPreview action={subgoal as ActionGoal} />}
+              {subgoal.type === 'group' && <GroupPreview group={subgoal as GroupGoal} />}
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Empty state */}
+        {(!goal.subgoals || goal.subgoals.length === 0) && (
+          <motion.div variants={itemVariants} className="glass-card p-8 text-center">
+            <p className="text-muted-foreground">No items in this group yet.</p>
+            <p className="text-sm text-muted-foreground mt-2">Ask the AI to add items to this group!</p>
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
   );
 };

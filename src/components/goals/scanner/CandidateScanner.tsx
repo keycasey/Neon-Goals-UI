@@ -81,6 +81,18 @@ export const CandidateScanner: React.FC<CandidateScannerProps> = ({
 
   // Sync local state when props change (after opening scanner again with updated data)
   useEffect(() => {
+    // Debug logging
+    console.log('[CandidateScanner] Syncing state', {
+      totalCandidates: candidates.length,
+      selectedCandidateId,
+      shortlistedCount: (shortlistedCandidates || []).length,
+      deniedCount: (deniedCandidates || []).length,
+      // Log all candidates with retailers
+      allCandidates: candidates.map(c => ({ id: c.id, retailer: c.retailer, name: c.name })),
+      shortlistedIds: (shortlistedCandidates || []).map(c => c.id),
+      deniedIds: (deniedCandidates || []).map(c => c.id),
+    });
+
     // Sync primary
     if (selectedCandidateId) {
       const selected = candidates.find(c => c.id === selectedCandidateId);
@@ -95,15 +107,21 @@ export const CandidateScanner: React.FC<CandidateScannerProps> = ({
     // Sync prospects - filter out denied, selected, and shortlisted
     const updatedShortlistedIds = (shortlistedCandidates || []).map(c => c.id);
     const updatedDeniedIds = (deniedCandidates || []).map(c => c.id);
-    setProspects(
-      candidates
-        .filter(c =>
-          c.id !== selectedCandidateId &&
-          !updatedShortlistedIds.includes(c.id) &&
-          !updatedDeniedIds.includes(c.id)
-        )
-        .map(c => toManagedCandidate(c, 'prospect'))
-    );
+
+    const filteredProspects = candidates
+      .filter(c =>
+        c.id !== selectedCandidateId &&
+        !updatedShortlistedIds.includes(c.id) &&
+        !updatedDeniedIds.includes(c.id)
+      )
+      .map(c => toManagedCandidate(c, 'prospect'));
+
+    console.log('[CandidateScanner] Filtered prospects', {
+      filteredCount: filteredProspects.length,
+      filteredProspects: filteredProspects.map(p => ({ id: p.id, retailer: p.retailer, name: p.name })),
+    });
+
+    setProspects(filteredProspects);
 
     // Reset current index if out of bounds
     setCurrentIndex(0);

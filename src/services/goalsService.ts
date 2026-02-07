@@ -10,6 +10,17 @@ function transformGoal(goal: any, subgoals: any[] = []): any {
     // Use nullish coalescing to preserve null/undefined vs empty object distinction
     const itemDataSearchFilters = goal.itemData.searchFilters ?? goal.searchFilters ?? {};
 
+    // Debug logging for candidates
+    console.log('[transformGoal] Item goal:', {
+      goalId: goal.id,
+      goalTitle: goal.title,
+      candidatesCount: goal.itemData.candidates?.length || 0,
+      candidates: goal.itemData.candidates,
+      shortlistedCount: goal.itemData.shortlistedCandidates?.length || 0,
+      deniedCount: goal.itemData.deniedCandidates?.length || 0,
+      selectedCandidateId: goal.itemData.selectedCandidateId,
+    });
+
     return {
       ...goal,
       subgoals,

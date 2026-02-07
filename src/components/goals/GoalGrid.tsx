@@ -6,8 +6,9 @@ import { ItemGoalCard } from './ItemGoalCard';
 import { StackedItemGoalCard } from './StackedItemGoalCard';
 import { FinanceGoalCard } from './FinanceGoalCard';
 import { ActionGoalCard } from './ActionGoalCard';
+import { GroupGoalCard } from './GroupGoalCard';
 import { GoalListCard } from './GoalListCard';
-import type { Goal, ItemGoal, FinanceGoal, ActionGoal } from '@/types/goals';
+import type { Goal, ItemGoal, FinanceGoal, ActionGoal, GroupGoal } from '@/types/goals';
 import { cn } from '@/lib/utils';
 
 interface GoalGridProps {
@@ -273,6 +274,16 @@ const GoalCardWrapper = React.forwardRef<
           goal={goal as ActionGoal}
           onViewDetail={onViewDetail}
           onDelete={onDelete}
+          animationIndex={animationIndex}
+        />
+      );
+    case 'group':
+      return (
+        <GroupGoalCard
+          goal={goal as GroupGoal}
+          onViewDetail={onViewDetail}
+          onDelete={onDelete}
+          onArchive={onArchive}
           animationIndex={animationIndex}
         />
       );

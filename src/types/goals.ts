@@ -1,5 +1,7 @@
-export type GoalType = 'item' | 'finance' | 'action';
+export type GoalType = 'item' | 'finance' | 'action' | 'group';
 export type GoalStatus = 'active' | 'completed' | 'archived';
+export type GroupLayout = 'grid' | 'list' | 'kanban';
+export type ProgressType = 'average' | 'sum' | 'manual';
 export type ItemStatusBadge = 'in-stock' | 'price-drop' | 'pending-search' | 'in_stock' | 'price_drop' | 'pending_search';
 
 export type ScrapeJobStatus = 'pending' | 'running' | 'completed' | 'failed';
@@ -94,6 +96,16 @@ export interface ActionTask {
   createdAt: Date;
 }
 
+export interface GroupGoal extends Goal {
+  type: 'group';
+  icon?: string;
+  color?: string;
+  layout: GroupLayout;
+  progressType: ProgressType;
+  progress: number;  // Calculated from children
+  subgoals: Goal[];  // Can contain any goal type including other groups
+}
+
 export interface User {
   id: string;
   name: string;
@@ -112,6 +124,8 @@ export interface Settings {
   displayName: string;
 }
 
+export type ProposalType = 'confirm_edit_cancel' | 'accept_decline';
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -119,6 +133,7 @@ export interface Message {
   timestamp: Date;
   goalPreview?: string;
   awaitingConfirmation?: boolean;
+  proposalType?: ProposalType;
 }
 
 export interface ChatState {
@@ -126,5 +141,5 @@ export interface ChatState {
   isLoading: boolean;
 }
 
-export type GoalCategory = 'all' | 'items' | 'finances' | 'actions';
+export type GoalCategory = 'all' | 'items' | 'finances' | 'actions' | 'groups';
 export type ViewMode = 'list' | 'card';

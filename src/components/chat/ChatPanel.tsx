@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Sparkles, Minimize2, Maximize2, Check, XCircle, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
-import type { Message } from '@/types/goals';
+import type { Message, ProposalType } from '@/types/goals';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -74,6 +74,24 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   };
 
+  // Handle accept - for accept/decline proposals
+  const handleAccept = (messageId?: string) => {
+    if (messageId) {
+      markProposalHandled(messageId);
+    }
+    // For now, accept works the same as confirm - executes pending commands
+    confirmPendingCommands();
+  };
+
+  // Handle decline - for accept/decline proposals
+  const handleDecline = (messageId?: string) => {
+    if (messageId) {
+      markProposalHandled(messageId);
+    }
+    // Decline works like cancel - rejects the proposal
+    cancelPendingCommands('Declined');
+  };
+
   const {
     creationChat,
     goalChats,
@@ -89,6 +107,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     pendingCommands,
     addAssistantMessage,
     markProposalHandled,
+    chatPulseTrigger,
   } = useAppStore();
 
   const chat = mode === 'creation' ? creationChat : goalChats[goalId || ''] || { messages: [], isLoading: false };
@@ -142,6 +161,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       setIsExitingGoal(false);
     }
   }, [mode, previousMode]);
+
+  // Trigger glow pulse when chatPulseTrigger changes
+  useEffect(() => {
+    if (chatPulseTrigger > 0) {
+      setGlowPulse(true);
+      const timer = setTimeout(() => setGlowPulse(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [chatPulseTrigger]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -261,9 +289,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   key={message.id}
                   message={message}
                   messageId={message.id}
-                  onConfirm={message.awaitingConfirmation ? () => handleConfirm(message.id) : undefined}
-                  onEdit={message.awaitingConfirmation ? () => handleEdit(message.id) : undefined}
-                  onCancel={message.awaitingConfirmation ? () => handleCancel(message.id) : undefined}
+                  onConfirm={message.awaitingConfirmation && message.proposalType === 'confirm_edit_cancel' ? () => handleConfirm(message.id) : undefined}
+                  onEdit={message.awaitingConfirmation && message.proposalType === 'confirm_edit_cancel' ? () => handleEdit(message.id) : undefined}
+                  onCancel={message.awaitingConfirmation && message.proposalType === 'confirm_edit_cancel' ? () => handleCancel(message.id) : undefined}
+                  onAccept={message.awaitingConfirmation && message.proposalType === 'accept_decline' ? () => handleAccept(message.id) : undefined}
+                  onDecline={message.awaitingConfirmation && message.proposalType === 'accept_decline' ? () => handleDecline(message.id) : undefined}
                   isExiting={isExitingGoal}
                 />
               ))}
@@ -344,9 +374,11 @@ const MessageBubble = React.forwardRef<
     onConfirm?: () => void;
     onEdit?: () => void;
     onCancel?: () => void;
+    onAccept?: () => void;
+    onDecline?: () => void;
     isExiting?: boolean;
   }
->(({ message, messageId, onConfirm, onEdit, onCancel, isExiting }, ref) => {
+>(({ message, messageId, onConfirm, onEdit, onCancel, onAccept, onDecline, isExiting }, ref) => {
   const isUser = message.role === 'user';
   const hasGoalPreview = message.goalPreview && message.awaitingConfirmation;
   // Get isProposalHandled from store
@@ -375,68 +407,109 @@ const MessageBubble = React.forwardRef<
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.goalPreview}</ReactMarkdown>
           </div>
 
-          {/* Confirmation Buttons */}
+          {/* Proposal Buttons - render based on which handlers are provided */}
           <div className="flex flex-col lg:flex-row lg:justify-end gap-2">
-            {/* Cancel Button */}
-            <button
-              onClick={onCancel}
-              disabled={isHandled}
-              className={cn(
-                "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
-                isHandled
-                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
-                  : "bg-destructive/20 text-destructive hover:bg-destructive/30",
-                // Mobile: full width with icon and text
-                "w-full px-4 py-2",
-                // Desktop: centered icon, expand and slide left on hover
-                "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
-              )}
-            >
-              <X className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
-              <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
-                Cancel
-              </span>
-            </button>
-            {/* Edit Button */}
-            <button
-              onClick={onEdit}
-              disabled={isHandled}
-              className={cn(
-                "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
-                isHandled
-                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
-                  : "bg-muted text-foreground hover:bg-muted/70",
-                // Mobile: full width with icon and text
-                "w-full px-4 py-2",
-                // Desktop: centered icon, expand and slide left on hover
-                "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
-              )}
-            >
-              <Edit3 className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
-              <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
-                Edit
-              </span>
-            </button>
-            {/* Confirm Button */}
-            <button
-              onClick={onConfirm}
-              disabled={isHandled}
-              className={cn(
-                "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
-                isHandled
-                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
-                  : "bg-gradient-neon text-primary-foreground neon-glow-cyan",
-                // Mobile: full width with icon and text
-                "w-full px-4 py-2",
-                // Desktop: centered icon, expand and slide left on hover
-                "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
-              )}
-            >
-              <Check className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
-              <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
-                Confirm
-              </span>
-            </button>
+            {/* Confirm/Edit/Cancel Buttons */}
+            {onConfirm && onEdit && onCancel && (
+              <>
+                {/* Cancel Button */}
+                <button
+                  onClick={onCancel}
+                  disabled={isHandled}
+                  className={cn(
+                    "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                    isHandled
+                      ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                      : "bg-destructive/20 text-destructive hover:bg-destructive/30",
+                    "w-full px-4 py-2",
+                    "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                  )}
+                >
+                  <X className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                  <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                    Cancel
+                  </span>
+                </button>
+                {/* Edit Button */}
+                <button
+                  onClick={onEdit}
+                  disabled={isHandled}
+                  className={cn(
+                    "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                    isHandled
+                      ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                      : "bg-muted text-foreground hover:bg-muted/70",
+                    "w-full px-4 py-2",
+                    "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                  )}
+                >
+                  <Edit3 className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                  <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                    Edit
+                  </span>
+                </button>
+                {/* Confirm Button */}
+                <button
+                  onClick={onConfirm}
+                  disabled={isHandled}
+                  className={cn(
+                    "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                    isHandled
+                      ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                      : "bg-gradient-neon text-primary-foreground neon-glow-cyan",
+                    "w-full px-4 py-2",
+                    "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                  )}
+                >
+                  <Check className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                  <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                    Confirm
+                  </span>
+                </button>
+              </>
+            )}
+
+            {/* Accept/Decline Buttons */}
+            {onAccept && onDecline && (
+              <>
+                {/* Decline Button */}
+                <button
+                  onClick={onDecline}
+                  disabled={isHandled}
+                  className={cn(
+                    "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                    isHandled
+                      ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                      : "bg-destructive/20 text-destructive hover:bg-destructive/30",
+                    "w-full px-4 py-2",
+                    "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                  )}
+                >
+                  <XCircle className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                  <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                    Decline
+                  </span>
+                </button>
+                {/* Accept Button */}
+                <button
+                  onClick={onAccept}
+                  disabled={isHandled}
+                  className={cn(
+                    "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                    isHandled
+                      ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                      : "bg-gradient-neon text-primary-foreground neon-glow-cyan",
+                    "w-full px-4 py-2",
+                    "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                  )}
+                >
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                  <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                    Accept
+                  </span>
+                </button>
+              </>
+            )}
           </div>
 
           <p className="text-[10px] text-muted-foreground">

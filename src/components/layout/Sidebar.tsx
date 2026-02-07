@@ -214,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
                 }
         }
         className={cn(
-          "fixed left-0 z-50",
+          "fixed left-0 z-[60]",
           // Mobile: full screen overlay when open
           "top-0 h-screen",
           // Desktop: below header
