@@ -104,7 +104,7 @@ class ApiClient {
    * Streaming POST request for Server-Sent Events (SSE)
    * Returns a readable stream that emits SSE data
    */
-  async postStream(endpoint: string, data?: any, includeAuth = true): ReadableStream {
+  async postStream(endpoint: string, data?: any, includeAuth = true): Promise<ReadableStream> {
     const url = `${this.baseUrl}${endpoint}`;
 
     const response = await fetch(url, {

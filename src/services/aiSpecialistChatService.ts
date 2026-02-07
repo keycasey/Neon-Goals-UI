@@ -30,7 +30,7 @@ export const aiSpecialistChatService = {
    * Streaming chat with a category specialist
    * Returns a readable stream of Server-Sent Events
    */
-  chatStream(categoryId: CategoryId, message: string): ReadableStream {
+  async chatStream(categoryId: CategoryId, message: string): Promise<ReadableStream> {
     return apiClient.postStream(`/ai/specialist/category/${categoryId}/chat/stream`, { message });
   },
 

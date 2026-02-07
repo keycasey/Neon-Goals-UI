@@ -57,7 +57,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     const checkAndRefresh = async () => {
       // Check if any goals are in searching state
       const hasActiveScrapes = goals.some(g =>
-        g.statusBadge === 'pending_search' || g.statusBadge === 'pending-search'
+        'statusBadge' in g && (g.statusBadge === 'pending_search' || g.statusBadge === 'pending-search')
       );
 
       if (hasActiveScrapes) {

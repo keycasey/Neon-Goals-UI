@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Sparkles, Minimize2, Maximize2, Check, XCircle, Edit3 } from 'lucide-react';
+import { Send, X, Sparkles, Minimize2, Maximize2, Check, XCircle, CheckCircle, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { Message, ProposalType } from '@/types/goals';
