@@ -99,7 +99,7 @@ interface AppState {
   sendGoalMessage: (goalId: string, content: string) => void;
   startGoalCreation: () => void;
   stopGoalCreation: () => void;
-  addAssistantMessage: (mode: 'creation' | 'goal', goalId?: string, content: string) => void;
+  addAssistantMessage: (mode: 'creation' | 'goal', goalId: string | undefined, content: string) => void;
   markProposalHandled: (messageId: string) => void;
   isProposalHandled: (messageId: string) => boolean;
 
@@ -1125,7 +1125,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Add an assistant message without triggering API call (for Edit action)
-      addAssistantMessage: (mode: 'creation' | 'goal', goalId?: string, content: string) => {
+      addAssistantMessage: (mode: 'creation' | 'goal', goalId: string | undefined, content: string) => {
         const assistantMessage: Message = {
           id: Date.now().toString(),
           role: 'assistant',
@@ -1182,10 +1182,10 @@ export const useAppStore = create<AppState>()(
           }
 
           // Production mode: fetch from API
-          const chat = await chatsService.getOverviewChat();
+          const chat = await chatsService.getOverviewChat() as any;
           set({
             overviewChat: {
-              messages: chat.messages.map(m => ({
+              messages: (chat.messages || []).map((m: any) => ({
                 id: m.id,
                 role: m.role,
                 content: m.content,
@@ -1384,12 +1384,12 @@ export const useAppStore = create<AppState>()(
           }
 
           // Production mode: fetch from API
-          const chat = await chatsService.getCategoryChat(categoryId);
+          const chat = await chatsService.getCategoryChat(categoryId) as any;
           set((state) => ({
             categoryChats: {
               ...state.categoryChats,
               [categoryId]: {
-                messages: chat.messages.map(m => ({
+                messages: (chat.messages || []).map((m: any) => ({
                   id: m.id,
                   role: m.role,
                   content: m.content,
@@ -1483,27 +1483,44 @@ export const useAppStore = create<AppState>()(
           let fullContent = '';
           let finalChunk: any = {};
 
-          for await (const chunk of aiSpecialistChatService.chatStream(categoryId, { message: content })) {
-            fullContent += chunk.content;
+          const stream = await aiSpecialistChatService.chatStream(categoryId, content);
+          const reader = stream.getReader();
+          const decoder = new TextDecoder();
+          
+          while (true) {
+            const { done: readerDone, value } = await reader.read();
+            if (readerDone) break;
+            
+            const text = decoder.decode(value, { stream: true });
+            const sseLines = text.split('\n').filter(line => line.startsWith('data: '));
+            
+            for (const line of sseLines) {
+              try {
+                const chunk = JSON.parse(line.slice(6));
+                fullContent += chunk.content || '';
+                
+                if (chunk.done) {
+                  finalChunk = chunk;
+                }
 
-            if (chunk.done) {
-              finalChunk = chunk;
+                set((state) => ({
+                  categoryChats: {
+                    ...state.categoryChats,
+                    [categoryId]: {
+                      ...state.categoryChats[categoryId]!,
+                      messages: state.categoryChats[categoryId]!.messages.map(msg =>
+                        msg.id === assistantMessageId
+                          ? { ...msg, content: fullContent }
+                          : msg
+                      ),
+                      ...(chunk.done && { isLoading: false }),
+                    },
+                  },
+                }));
+              } catch (parseErr) {
+                // Skip malformed SSE lines
+              }
             }
-
-            set((state) => ({
-              categoryChats: {
-                ...state.categoryChats,
-                [categoryId]: {
-                  ...state.categoryChats[categoryId]!,
-                  messages: state.categoryChats[categoryId]!.messages.map(msg =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: fullContent }
-                      : msg
-                  ),
-                  ...(chunk.done && { isLoading: false }),
-                },
-              },
-            }));
           }
 
           set((state) => ({
@@ -1686,7 +1703,8 @@ export const useAppStore = create<AppState>()(
             await get().updateGoal(goalId, { title: data.title });
             break;
           case 'UPDATE_FILTERS':
-            await get().updateGoal(goalId, { filters: data.filters });
+            // filters is a dynamic property, cast to any for flexibility
+            await get().updateGoal(goalId, { searchFilters: data.filters } as any);
             break;
           case 'ARCHIVE_GOAL':
             await get().archiveGoal(goalId);

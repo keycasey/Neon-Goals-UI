@@ -1,33 +1,48 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, TrendingUp, Target, Wallet, ChevronDown, ChevronUp, Landmark } from 'lucide-react';
+import { RefreshCw, TrendingUp, Target, Wallet, ChevronDown, ChevronUp, Landmark, Plus, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { FinanceGoal } from '@/types/goals';
-import { FinancialAccountCard, sampleAccounts, type FinancialAccount } from './FinancialAccountCard';
+import { PlaidAccountCard } from '@/components/plaid/PlaidAccountCard';
+import { AccountSectionEmpty } from '@/components/plaid/AccountSectionEmpty';
+import { usePlaid } from '@/hooks/usePlaidLink';
 import { SyncToast, useSyncToast } from '@/components/ui/SyncToast';
+import type { PlaidAccount } from '@/services/plaidService';
 
 interface FinancialSummaryProps {
   className?: string;
 }
 
+// Map Plaid account types to our section categories
+const getCashAccounts = (accounts: PlaidAccount[]) =>
+  accounts.filter(a => ['checking', 'savings', 'depository'].includes(a.accountType));
+
+const getInvestmentAccounts = (accounts: PlaidAccount[]) =>
+  accounts.filter(a => ['investment', 'retirement', 'brokerage'].includes(a.accountType));
+
+const getCreditAccounts = (accounts: PlaidAccount[]) =>
+  accounts.filter(a => ['credit', 'loan'].includes(a.accountType));
+
+const isDebtType = (type: string) => ['credit', 'loan'].includes(type);
+
 export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className }) => {
   const { goals, syncFinanceGoal } = useAppStore();
   const [showAccounts, setShowAccounts] = useState(false);
   const syncToast = useSyncToast();
+  const { open: openPlaidLink, isLoading: isPlaidLoading, error: plaidError, accounts, syncAccount, isSyncing, fetchAccounts } = usePlaid();
 
   const financeGoals = goals.filter(
     (goal): goal is FinanceGoal => goal.type === 'finance' && goal.status === 'active'
   );
 
-  // Calculate totals from sample accounts
-  const accounts = sampleAccounts;
+  // Calculate totals from Plaid accounts
   const totalAssets = accounts
-    .filter(a => !a.isDebt)
+    .filter(a => !isDebtType(a.accountType) && !a.isDebt)
     .reduce((sum, a) => sum + a.currentBalance, 0);
   const totalDebt = accounts
-    .filter(a => a.isDebt)
-    .reduce((sum, a) => sum + a.currentBalance, 0);
+    .filter(a => isDebtType(a.accountType) || a.isDebt)
+    .reduce((sum, a) => sum + Math.abs(a.currentBalance), 0);
   const netWorth = totalAssets - totalDebt;
 
   const totalBalance = financeGoals.reduce((sum, goal) => sum + goal.currentBalance, 0);
@@ -41,8 +56,11 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
     syncToast.showSyncing('Updating all accounts...');
 
     try {
-      // Simulate sync delay for demo
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Sync Plaid accounts
+      for (const account of accounts) {
+        await syncAccount(account.id);
+      }
+      // Sync finance goals
       financeGoals.forEach(goal => syncFinanceGoal(goal.id));
       syncToast.showSuccess(`${accounts.length} accounts synced`);
     } catch (error) {
@@ -50,21 +68,16 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
     }
   };
 
-  const handleAccountSync = (accountId: string) => {
-    console.log('Syncing account:', accountId);
-    // Future: implement account sync
-  };
-
   const handleAccountClick = (accountId: string) => {
     console.log('Viewing account:', accountId);
-    // Future: navigate to account detail
   };
 
-  // Group accounts by type
-  const checkingAccounts = accounts.filter(a => a.accountType === 'checking');
-  const savingsAccounts = accounts.filter(a => a.accountType === 'savings');
-  const investmentAccounts = accounts.filter(a => a.accountType === 'investment' || a.accountType === 'retirement');
-  const debtAccounts = accounts.filter(a => a.accountType === 'credit' || a.accountType === 'loan');
+  // Group Plaid accounts by type
+  const cashAccounts = getCashAccounts(accounts);
+  const investmentAccounts = getInvestmentAccounts(accounts);
+  const creditAccounts = getCreditAccounts(accounts);
+
+  const hasAnyAccounts = accounts.length > 0;
 
   return (
     <>
@@ -117,7 +130,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               Net Worth
             </p>
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold neon-text-magenta">
-              ${netWorth.toLocaleString()}
+              {hasAnyAccounts ? `$${netWorth.toLocaleString()}` : '—'}
             </p>
           </div>
 
@@ -128,7 +141,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               Total Assets
             </p>
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-success">
-              ${totalAssets.toLocaleString()}
+              {hasAnyAccounts ? `$${totalAssets.toLocaleString()}` : '—'}
             </p>
           </div>
 
@@ -136,7 +149,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
           <div className="p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/30">
             <p className="text-xs text-muted-foreground mb-1">Total Debt</p>
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-destructive">
-              -${totalDebt.toLocaleString()}
+              {hasAnyAccounts ? `-$${totalDebt.toLocaleString()}` : '—'}
             </p>
           </div>
 
@@ -148,6 +161,18 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
             </p>
           </div>
         </div>
+
+        {/* Plaid Error */}
+        {plaidError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+            <p className="text-sm text-destructive">{plaidError}</p>
+          </motion.div>
+        )}
 
         {/* Goal Progress Bars */}
         {financeGoals.length > 0 && (
@@ -188,66 +213,42 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="px-6 pb-6 pt-2 border-t border-border/30">
-              {/* Checking & Savings */}
-              {(checkingAccounts.length > 0 || savingsAccounts.length > 0) && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                    Cash Accounts
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {[...checkingAccounts, ...savingsAccounts].map(account => (
-                      <FinancialAccountCard
-                        key={account.id}
-                        account={account}
-                        compact
-                        onSync={handleAccountSync}
-                        onClick={handleAccountClick}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="px-6 pb-6 pt-2 border-t border-border/30 space-y-4">
+              {/* Cash Accounts Section */}
+              <AccountSection
+                title="Cash Accounts"
+                accounts={cashAccounts}
+                emptyType="cash"
+                onAddAccount={openPlaidLink}
+                onSync={syncAccount}
+                onClick={handleAccountClick}
+                isSyncing={isSyncing}
+                isPlaidLoading={isPlaidLoading}
+              />
 
-              {/* Investments */}
-              {investmentAccounts.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                    Investments & Retirement
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {investmentAccounts.map(account => (
-                      <FinancialAccountCard
-                        key={account.id}
-                        account={account}
-                        compact
-                        onSync={handleAccountSync}
-                        onClick={handleAccountClick}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Investments & Retirement Section */}
+              <AccountSection
+                title="Investments & Retirement"
+                accounts={investmentAccounts}
+                emptyType="investments"
+                onAddAccount={openPlaidLink}
+                onSync={syncAccount}
+                onClick={handleAccountClick}
+                isSyncing={isSyncing}
+                isPlaidLoading={isPlaidLoading}
+              />
 
-              {/* Debt */}
-              {debtAccounts.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                    Credit & Loans
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {debtAccounts.map(account => (
-                      <FinancialAccountCard
-                        key={account.id}
-                        account={account}
-                        compact
-                        onSync={handleAccountSync}
-                        onClick={handleAccountClick}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Credit & Loans Section */}
+              <AccountSection
+                title="Credit & Loans"
+                accounts={creditAccounts}
+                emptyType="credit"
+                onAddAccount={openPlaidLink}
+                onSync={syncAccount}
+                onClick={handleAccountClick}
+                isSyncing={isSyncing}
+                isPlaidLoading={isPlaidLoading}
+              />
             </div>
           </motion.div>
         )}
@@ -262,5 +263,68 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
         onClose={syncToast.close}
       />
     </>
+  );
+};
+
+// Reusable account section component
+interface AccountSectionProps {
+  title: string;
+  accounts: PlaidAccount[];
+  emptyType: 'cash' | 'investments' | 'credit';
+  onAddAccount: () => void;
+  onSync: (accountId: string) => void;
+  onClick: (accountId: string) => void;
+  isSyncing: string | null;
+  isPlaidLoading: boolean;
+}
+
+const AccountSection: React.FC<AccountSectionProps> = ({
+  title,
+  accounts,
+  emptyType,
+  onAddAccount,
+  onSync,
+  onClick,
+  isSyncing,
+  isPlaidLoading,
+}) => {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-sm font-medium text-muted-foreground">
+          {title}
+        </h4>
+        {accounts.length > 0 && (
+          <button
+            onClick={onAddAccount}
+            disabled={isPlaidLoading}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+            aria-label={`Add ${title}`}
+          >
+            <Plus className={cn("w-4 h-4", isPlaidLoading && "animate-pulse")} />
+          </button>
+        )}
+      </div>
+
+      {accounts.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {accounts.map(account => (
+            <PlaidAccountCard
+              key={account.id}
+              account={account}
+              onSync={onSync}
+              onClick={onClick}
+              isSyncing={isSyncing === account.id}
+            />
+          ))}
+        </div>
+      ) : (
+        <AccountSectionEmpty
+          sectionType={emptyType}
+          onAddAccount={onAddAccount}
+          isLoading={isPlaidLoading}
+        />
+      )}
+    </div>
   );
 };

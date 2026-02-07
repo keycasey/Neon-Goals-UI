@@ -688,9 +688,10 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
                   return;
                 }
 
-                const deniedIds = (refreshedGoal.deniedCandidates || []).map(c => c.id);
-                const shortlistedIds = (refreshedGoal.shortlistedCandidates || []).map(c => c.id);
-                const validCandidateCount = (refreshedGoal.candidates || []).filter(c =>
+                const itemGoal = refreshedGoal as ItemGoal;
+                const deniedIds = (itemGoal.deniedCandidates || []).map(c => c.id);
+                const shortlistedIds = (itemGoal.shortlistedCandidates || []).map(c => c.id);
+                const validCandidateCount = (itemGoal.candidates || []).filter(c =>
                   !deniedIds.includes(c.id) && !shortlistedIds.includes(c.id)
                 ).length;
 
