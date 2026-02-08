@@ -39,6 +39,9 @@ const Login = () => {
   };
 
   const handleDemoLogin = async () => {
+    // Clear any existing auth token to prevent 401 errors
+    authService.logout();
+
     // Local-only demo mode - no backend calls
     const localDemoUser = {
       id: 'demo-user',

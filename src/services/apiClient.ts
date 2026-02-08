@@ -1,5 +1,13 @@
 import { API_BASE_URL } from '@/lib/apiConfig';
 
+// Endpoints that should not trigger redirect on 401 (non-critical, can fail silently)
+const SKIP_AUTH_REDIRECT_ENDPOINTS = [
+  '/plaid/accounts',
+  '/chats/overview',
+  '/chats/category',
+  '/chats/goal',
+];
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -18,6 +26,20 @@ class ApiClient {
   clearToken() {
     this.token = null;
     localStorage.removeItem('auth_token');
+  }
+
+  /**
+   * Handle 401 Unauthorized errors by logging out and redirecting to login
+   */
+  private handleUnauthorized() {
+    // Clear token
+    this.clearToken();
+    // Clear all auth-related storage
+    localStorage.removeItem('auth_token');
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   }
 
   private getHeaders(includeAuth = true): HeadersInit {
@@ -48,6 +70,19 @@ class ApiClient {
     };
 
     const response = await fetch(url, config);
+
+    // Handle 401 Unauthorized - token expired
+    if (response.status === 401) {
+      // Check if this endpoint should skip the auth redirect
+      const shouldSkipRedirect = SKIP_AUTH_REDIRECT_ENDPOINTS.some(skipEndpoint =>
+        endpoint.startsWith(skipEndpoint)
+      );
+
+      if (!shouldSkipRedirect) {
+        this.handleUnauthorized();
+      }
+      throw new Error('Session expired. Please log in again.');
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({
@@ -112,6 +147,19 @@ class ApiClient {
       headers: this.getHeaders(includeAuth),
       body: JSON.stringify(data),
     });
+
+    // Handle 401 Unauthorized - token expired
+    if (response.status === 401) {
+      // Check if this endpoint should skip the auth redirect
+      const shouldSkipRedirect = SKIP_AUTH_REDIRECT_ENDPOINTS.some(skipEndpoint =>
+        endpoint.startsWith(skipEndpoint)
+      );
+
+      if (!shouldSkipRedirect) {
+        this.handleUnauthorized();
+      }
+      throw new Error('Session expired. Please log in again.');
+    }
 
     if (!response.ok) {
       throw new Error(`Stream error: ${response.statusText}`);

@@ -37,6 +37,7 @@ function transformGoal(goal: any, subgoals: any[] = []): any {
       deniedCandidates: goal.itemData.deniedCandidates,
       category: goal.itemData.category,
       searchTerm: goal.itemData.searchTerm,
+      retailerFilters: goal.itemData.retailerFilters,
       // Search filters - set after spread to avoid being overwritten
       searchFilters: itemDataSearchFilters,
       // Vehicle filters (JSONB field for flexible vehicle data)

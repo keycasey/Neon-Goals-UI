@@ -16,7 +16,6 @@ import { authService } from '@/services/authService';
 import { goalsService } from '@/services/goalsService';
 import { usersService } from '@/services/usersService';
 import { chatsService } from '@/services/chatsService';
-import { aiService } from '@/services/aiService';
 import { aiGoalCreationService } from '@/services/aiGoalCreationService';
 import { aiOverviewChatService } from '@/services/aiOverviewChatService';
 import { aiGoalChatService } from '@/services/aiGoalChatService';
@@ -27,7 +26,7 @@ import { browserUseService } from '@/services/browserUseService';
 
 // Chat command types from backend
 export interface ChatCommand {
-  type: 'ADD_TASK' | 'TOGGLE_TASK' | 'UPDATE_TITLE' | 'UPDATE_FILTERS' | 'ARCHIVE_GOAL';
+  type: 'ADD_TASK' | 'TOGGLE_TASK' | 'UPDATE_TITLE' | 'UPDATE_SEARCHTERM' | 'REFRESH_CANDIDATES' | 'ARCHIVE_GOAL';
   goalId: string;
   data: any;
 }
@@ -68,6 +67,7 @@ interface AppState {
   isCreatingGoal: boolean; // Track if in goal creation flow
   pendingCommands: PendingCommandsState | null; // Commands awaiting user confirmation (with chatId)
   handledProposals: Set<string>; // Track which proposal messages have had actions taken
+  latestProposalMessageIds: Record<string, string | null>; // Track latest proposal message ID per chat (chatId -> messageId)
   activeStreams: Set<string>; // Track active stream IDs for streaming management
 
   // Loading state
@@ -102,6 +102,8 @@ interface AppState {
   addAssistantMessage: (mode: 'creation' | 'goal', goalId: string | undefined, content: string) => void;
   markProposalHandled: (messageId: string) => void;
   isProposalHandled: (messageId: string) => boolean;
+  isLatestProposal: (chatId: string, messageId: string) => boolean;
+  setLatestProposal: (chatId: string, messageId: string) => void;
 
   // Pending commands actions
   cancelPendingCommands: (reason?: string) => Promise<void>;
@@ -116,6 +118,9 @@ interface AppState {
   fetchCategoryChat: (categoryId: 'items' | 'finances' | 'actions') => Promise<void>;
   sendCategoryMessage: (categoryId: 'items' | 'finances' | 'actions', content: string) => Promise<void>;
   stopCategoryStream: (categoryId: 'items' | 'finances' | 'actions') => Promise<void>;
+
+  // Goal chat actions
+  fetchGoalChat: (goalId: string) => Promise<void>;
 
   // Stream management actions
   setActiveStream: (streamId: string, active: boolean) => void;
@@ -188,6 +193,7 @@ export const useAppStore = create<AppState>()(
       isCreatingGoal: false,
       pendingCommands: null,
       handledProposals: new Set<string>(), // Track which proposal messages have had actions taken
+      latestProposalMessageIds: {}, // Track latest proposal message ID per chat
       overviewChat: null,
       categoryChats: {
         items: null,
@@ -385,6 +391,7 @@ export const useAppStore = create<AppState>()(
               timestamp: new Date(),
               goalPreview: response.goalPreview,
               awaitingConfirmation: response.awaitingConfirmation,
+              proposalType: response.proposalType,
             };
 
             set((state) => ({
@@ -394,6 +401,11 @@ export const useAppStore = create<AppState>()(
                 isLoading: false,
               },
             }));
+
+            // Track latest proposal
+            if (response.awaitingConfirmation) {
+              get().setLatestProposal('creation', assistantMessage.id);
+            }
 
             // If goal was created, add it to the list and exit creation mode
             if (response.goalCreated && response.goal) {
@@ -528,6 +540,8 @@ export const useAppStore = create<AppState>()(
                     timestamp: Date.now(),
                   },
                 });
+                // Track latest proposal
+                get().setLatestProposal('creation', assistantMessageId);
                 return;
               }
 
@@ -552,72 +566,41 @@ export const useAppStore = create<AppState>()(
 
               return;
             } catch (streamError) {
-              console.error('Streaming failed, falling back to regular chat:', streamError);
-              // Fallback to regular chat - respect demo mode
+              console.error('Streaming failed, falling back to non-streaming chat:', streamError);
+              // Fallback to non-streaming overview chat (OpenAI) - respect demo mode
               const chatResponse = isDemo
                 ? await mockOverviewChatService.chat(content)
-                : await aiService.chat({
-                    messages: get().creationChat.messages,
-                    mode: 'creation',
-                  });
+                : await aiOverviewChatService.chat({ message: content });
 
               set((state) => ({
                 creationChat: {
                   ...state.creationChat,
                   messages: state.creationChat.messages.map(msg =>
                     msg.id === assistantMessageId
-                      ? { ...msg, content: chatResponse.content }
+                      ? {
+                          ...msg,
+                          content: chatResponse.content,
+                          ...(chatResponse.commands && {
+                            goalPreview: chatResponse.commands[0]?.data ? JSON.stringify(chatResponse.commands[0].data, null, 2) : undefined,
+                            awaitingConfirmation: (chatResponse.commands?.length || 0) > 0,
+                            proposalType: chatResponse.commands?.[0]?.data?.proposalType || 'accept_decline',
+                          }),
+                        }
                       : msg
                   ),
                   isLoading: false,
                 },
               }));
 
-              // Check if AI detected goal creation intent (skip in demo mode)
-              if (!isDemo && (chatResponse as any).shouldEnterGoalCreation && !get().isCreatingGoal) {
-                await aiGoalCreationService.startSession();
-                get().startGoalCreation();
-
-                // Re-send the user's message to the new OpenAI service
-                const response = await aiGoalCreationService.chat(content);
-
-                const newAssistantMessage: Message = {
-                  id: (Date.now() + 2).toString(),
-                  role: 'assistant',
-                  content: response.content,
-                  timestamp: new Date(),
-                  goalPreview: response.goalPreview,
-                  awaitingConfirmation: response.awaitingConfirmation,
-                };
-
-                set((state) => ({
-                  creationChat: {
-                    ...state.creationChat,
-                    messages: [...state.creationChat.messages, newAssistantMessage],
-                    isLoading: false,
+              // Handle commands from non-streaming response (OpenAI format)
+              if (!isDemo && chatResponse.commands && chatResponse.commands.length > 0) {
+                set({
+                  pendingCommands: {
+                    chatId: 'creation',
+                    commands: chatResponse.commands,
+                    timestamp: Date.now(),
                   },
-                }));
-
-                // If goal was created, add it to the list and exit creation mode
-                if (response.goalCreated && response.goal) {
-                  const transformedGoal = response.goal;
-                  set((state) => ({
-                    goals: [...state.goals, transformedGoal],
-                    isCreatingGoal: false,
-                    creationChat: {
-                      messages: [{
-                        id: 'reset',
-                        role: 'assistant',
-                        content: "🎉 Your goal has been created! Ready to talk about your next goal!",
-                        timestamp: new Date(),
-                      }],
-                      isLoading: false,
-                    },
-                  }));
-                  await get().fetchGoals();
-                }
-
-                return; // Exit early since we handled the message with the new service
+                });
               }
             }
           }
@@ -675,6 +658,9 @@ export const useAppStore = create<AppState>()(
             role: 'assistant',
             content: response.content,
             timestamp: new Date(),
+            goalPreview: response.goalPreview,
+            awaitingConfirmation: response.awaitingConfirmation,
+            proposalType: response.proposalType,
           };
 
           set((state) => ({
@@ -686,6 +672,11 @@ export const useAppStore = create<AppState>()(
               },
             },
           }));
+
+          // Track latest proposal
+          if (response.awaitingConfirmation) {
+            get().setLatestProposal(`goal-${goalId}`, assistantMessage.id);
+          }
 
           // Execute commands if present
           if (response.commands && response.commands.length > 0) {
@@ -1165,6 +1156,21 @@ export const useAppStore = create<AppState>()(
         return get().handledProposals.has(messageId);
       },
 
+      // Check if a proposal is the latest one for its chat
+      isLatestProposal: (chatId: string, messageId: string) => {
+        return get().latestProposalMessageIds[chatId] === messageId;
+      },
+
+      // Set the latest proposal message ID for a chat
+      setLatestProposal: (chatId: string, messageId: string) => {
+        set((state) => ({
+          latestProposalMessageIds: {
+            ...state.latestProposalMessageIds,
+            [chatId]: messageId,
+          },
+        }));
+      },
+
       // ========== Overview Chat Actions ==========
 
       fetchOverviewChat: async () => {
@@ -1252,7 +1258,13 @@ export const useAppStore = create<AppState>()(
                 ...state.overviewChat!,
                 messages: state.overviewChat!.messages.map(msg =>
                   msg.id === assistantMessageId
-                    ? { ...msg, content: response.content }
+                    ? {
+                        ...msg,
+                        content: response.content,
+                        goalPreview: response.goalPreview,
+                        awaitingConfirmation: response.awaitingConfirmation,
+                        proposalType: response.proposalType,
+                      }
                     : msg
                 ),
                 isLoading: false,
@@ -1300,7 +1312,11 @@ export const useAppStore = create<AppState>()(
                     ? {
                         ...msg,
                         content: fullContent,
-                        ...(chunk.done && { goalPreview: chunk.goalPreview }),
+                        ...(chunk.done && {
+                          goalPreview: chunk.goalPreview,
+                          awaitingConfirmation: chunk.awaitingConfirmation,
+                          proposalType: chunk.proposalType,
+                        }),
                       }
                     : msg
                 ),
@@ -1322,6 +1338,8 @@ export const useAppStore = create<AppState>()(
                 timestamp: Date.now(),
               },
             });
+            // Track latest proposal
+            get().setLatestProposal('overview', assistantMessageId);
             return;
           }
 
@@ -1414,6 +1432,61 @@ export const useAppStore = create<AppState>()(
         }
       },
 
+      // ========== Goal Chat Actions ==========
+
+      fetchGoalChat: async (goalId: string) => {
+        try {
+          const isDemo = get().isDemoMode;
+          if (isDemo) {
+            // Demo mode: initialize with empty chat
+            set((state) => ({
+              goalChats: {
+                ...state.goalChats,
+                [goalId]: {
+                  messages: [],
+                  isLoading: false,
+                },
+              },
+            }));
+            return;
+          }
+
+          // Production mode: fetch from API
+          const chat = await chatsService.getGoalChat(goalId) as any;
+          set((state) => ({
+            goalChats: {
+              ...state.goalChats,
+              [goalId]: {
+                messages: (chat.messages || []).map((m: any) => ({
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  timestamp: new Date(m.timestamp),
+                  goalPreview: m.goalPreview,
+                  awaitingConfirmation: m.awaitingConfirmation,
+                  proposalType: m.proposalType,
+                })),
+                isLoading: false,
+              },
+            },
+          }));
+        } catch (error) {
+          console.error(`Failed to fetch goal chat for ${goalId}:`, error);
+          // Initialize empty chat on error
+          set((state) => ({
+            goalChats: {
+              ...state.goalChats,
+              [goalId]: {
+                messages: [],
+                isLoading: false,
+              },
+            },
+          }));
+        }
+      },
+
+      // ========== Category Specialist Chat Actions ==========
+
       sendCategoryMessage: async (categoryId: 'items' | 'finances' | 'actions', content: string) => {
         const isDemo = get().isDemoMode;
         const streamId = `${categoryId}-${Date.now()}`;
@@ -1468,7 +1541,13 @@ export const useAppStore = create<AppState>()(
                   ...state.categoryChats[categoryId]!,
                   messages: state.categoryChats[categoryId]!.messages.map(msg =>
                     msg.id === assistantMessageId
-                      ? { ...msg, content: response.content }
+                      ? {
+                          ...msg,
+                          content: response.content,
+                          goalPreview: response.goalPreview,
+                          awaitingConfirmation: response.awaitingConfirmation,
+                          proposalType: response.proposalType,
+                        }
                       : msg
                   ),
                   isLoading: false,
@@ -1521,6 +1600,29 @@ export const useAppStore = create<AppState>()(
                 // Skip malformed SSE lines
               }
             }
+
+            set((state) => ({
+              categoryChats: {
+                ...state.categoryChats,
+                [categoryId]: {
+                  ...state.categoryChats[categoryId]!,
+                  messages: state.categoryChats[categoryId]!.messages.map(msg =>
+                    msg.id === assistantMessageId
+                      ? {
+                          ...msg,
+                          content: fullContent,
+                          ...(chunk.done && {
+                            goalPreview: chunk.goalPreview,
+                            awaitingConfirmation: chunk.awaitingConfirmation,
+                            proposalType: chunk.proposalType,
+                          }),
+                        }
+                      : msg
+                  ),
+                  ...(chunk.done && { isLoading: false }),
+                },
+              },
+            }));
           }
 
           set((state) => ({
@@ -1536,6 +1638,8 @@ export const useAppStore = create<AppState>()(
                 timestamp: Date.now(),
               },
             });
+            // Track latest proposal
+            get().setLatestProposal(categoryId, assistantMessageId);
             return;
           }
 
@@ -1702,9 +1806,13 @@ export const useAppStore = create<AppState>()(
           case 'UPDATE_TITLE':
             await get().updateGoal(goalId, { title: data.title });
             break;
-          case 'UPDATE_FILTERS':
-            // filters is a dynamic property, cast to any for flexibility
-            await get().updateGoal(goalId, { searchFilters: data.filters } as any);
+          case 'UPDATE_SEARCHTERM':
+            // Update searchTerm - backend will regenerate retailerFilters
+            await get().updateGoal(goalId, { searchTerm: data.searchTerm } as any);
+            break;
+          case 'REFRESH_CANDIDATES':
+            // Refresh candidates - queue scraping job (uses accept/decline proposal type)
+            await goalsService.refreshCandidates(goalId);
             break;
           case 'ARCHIVE_GOAL':
             await get().archiveGoal(goalId);

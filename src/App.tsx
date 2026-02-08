@@ -18,8 +18,6 @@ import Login from "./pages/Login";
 import Callback from "./pages/Callback";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import { OverviewChatPage } from "./pages/OverviewChatPage";
-import { ChatPage } from "./pages/ChatPage";
 
 const queryClient = new QueryClient();
 
@@ -43,7 +41,6 @@ const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isGoalRoute = location.pathname.startsWith('/goals/');
-  const isChatRoute = location.pathname.startsWith('/chat/');
   const isSettingsRoute = location.pathname === '/settings';
   const isChatMinimized = useAppStore((state) => state.isChatMinimized);
   const toggleChatMinimized = useAppStore((state) => state.toggleChatMinimized);
@@ -60,22 +57,18 @@ const MainLayout = () => {
     navigate('/');
   };
 
-  const handleBackFromChat = () => {
-    navigate('/');
-  };
-
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background grid-bg">
         {/* Only show Sidebar and ChatSidebar if NOT on settings page */}
-        {!isSettingsRoute && !isChatRoute && <Sidebar isGoalView={isGoalRoute} />}
-        {!isSettingsRoute && !isChatRoute && (
+        {!isSettingsRoute && <Sidebar isGoalView={isGoalRoute} />}
+        {!isSettingsRoute && (
           <Header
             accountDropdownOpen={accountDropdownOpen}
             setAccountDropdownOpen={setAccountDropdownOpen}
           />
         )}
-        {!isSettingsRoute && !isChatRoute && (
+        {!isSettingsRoute && (
           <ChatSidebar
             mode={isGoalRoute ? "goal" : "creation"}
             goalId={isGoalRoute ? location.pathname.split('/')[2] : undefined}
@@ -85,14 +78,14 @@ const MainLayout = () => {
         )}
         <Outlet />
 
-        {/* Floating back button for mobile goal view or chat pages */}
+        {/* Floating back button for mobile goal view */}
         <FloatingBackButton
-          isVisible={isGoalRoute || isChatRoute}
-          onClick={isGoalRoute ? handleBackFromGoal : handleBackFromChat}
+          isVisible={isGoalRoute}
+          onClick={handleBackFromGoal}
         />
 
         {/* Account dropdown - rendered outside header for full viewport height */}
-        {!isSettingsRoute && !isChatRoute && (
+        {!isSettingsRoute && (
           <AccountDropdown
             isOpen={accountDropdownOpen}
             onClose={() => setAccountDropdownOpen(false)}
@@ -118,8 +111,6 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/goals/:goalId" element={<GoalDetailPageWrapper />} />
-        <Route path="/chat/overview" element={<OverviewChatPage />} />
-        <Route path="/chat/:categoryId" element={<ChatPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/login" element={<Login />} />

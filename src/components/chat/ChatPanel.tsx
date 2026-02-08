@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 interface ChatPanelProps {
   mode: 'creation' | 'goal';
   goalId?: string;
+  activeCategory?: GoalCategory;
   onClose?: () => void;
   className?: string;
   isMinimized?: boolean;
@@ -20,6 +21,7 @@ interface ChatPanelProps {
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   mode,
   goalId,
+  activeCategory = 'all',
   onClose,
   className,
   isMinimized: externalIsMinimized,
@@ -95,8 +97,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const {
     creationChat,
     goalChats,
+    overviewChat,
+    categoryChats,
     sendCreationMessage,
     sendGoalMessage,
+    sendOverviewMessage,
+    sendCategoryMessage,
     confirmGoalCreation,
     startGoalCreation,
     stopGoalCreation,
@@ -107,15 +113,55 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     pendingCommands,
     addAssistantMessage,
     markProposalHandled,
+    isLatestProposal,
     chatPulseTrigger,
+    fetchOverviewChat,
+    fetchCategoryChat,
+    fetchGoalChat,
   } = useAppStore();
 
-  const chat = mode === 'creation' ? creationChat : goalChats[goalId || ''] || { messages: [], isLoading: false };
+  // Compute chat ID for latest proposal tracking
+  const chatId = useMemo(() => {
+    if (mode === 'goal') return `goal-${goalId}`;
+    if (activeCategory === 'all') return 'overview';
+    if (activeCategory === 'items' || activeCategory === 'finances' || activeCategory === 'actions') return activeCategory;
+    return 'creation';
+  }, [mode, goalId, activeCategory]);
+
+  // For creation mode, use overviewChat (all) or categoryChats (items/finances/actions)
+  // For goal mode, use goalChats
+  const chat = useMemo(() => {
+    if (mode === 'goal') {
+      return goalChats[goalId || ''] || { messages: [], isLoading: false };
+    }
+    // Creation mode - use specialist chats
+    if (activeCategory === 'all') {
+      return overviewChat || { messages: [], isLoading: false };
+    }
+    if (activeCategory === 'items') {
+      return categoryChats.items || { messages: [], isLoading: false };
+    }
+    if (activeCategory === 'finances') {
+      return categoryChats.finances || { messages: [], isLoading: false };
+    }
+    if (activeCategory === 'actions') {
+      return categoryChats.actions || { messages: [], isLoading: false };
+    }
+    return creationChat;
+  }, [mode, goalId, activeCategory, goalChats, overviewChat, categoryChats, creationChat]);
   const goal = goalId ? goals.find(g => g.id === goalId) : null;
 
   // Memoize persona to prevent infinite re-renders
   const persona = useMemo(() => {
-    if (mode === 'creation') return { name: 'Goals Assistant', emoji: '🌴' };
+    if (mode === 'creation') {
+      // Use specialist personas based on active category
+      switch (activeCategory) {
+        case 'items': return { name: 'Product Expert', emoji: '🔍' };
+        case 'finances': return { name: 'Wealth Advisor', emoji: '💰' };
+        case 'actions': return { name: 'Personal Coach', emoji: '💪' };
+        default: return { name: 'Goals Assistant', emoji: '🌴' };
+      }
+    }
     if (!goal) return { name: 'Assistant', emoji: '✨' };
 
     switch (goal.type) {
@@ -124,7 +170,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       case 'action': return { name: 'Personal Coach', emoji: '💪' };
       default: return { name: 'Assistant', emoji: '✨' };
     }
-  }, [mode, goal?.type]);
+  }, [mode, goal?.type, activeCategory]);
 
   // Track persona changes for avatar animation
   useEffect(() => {
@@ -171,6 +217,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [chatPulseTrigger]);
 
+  // Fetch chat history on mount and when mode/category/goalId changes
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      if (mode === 'goal' && goalId) {
+        // Fetch goal chat history
+        await fetchGoalChat(goalId);
+      } else if (mode === 'creation') {
+        // Fetch specialist chat history based on active category
+        if (activeCategory === 'all') {
+          await fetchOverviewChat();
+        } else if (activeCategory === 'items' || activeCategory === 'finances' || activeCategory === 'actions') {
+          await fetchCategoryChat(activeCategory);
+        }
+      }
+    };
+
+    fetchChatHistory();
+  }, [mode, goalId, activeCategory, fetchGoalChat, fetchOverviewChat, fetchCategoryChat]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -183,10 +248,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     e.preventDefault();
     if (!input.trim() || chat.isLoading) return;
 
-    if (mode === 'creation') {
-      sendCreationMessage(input.trim());
-    } else if (goalId) {
+    if (mode === 'goal' && goalId) {
       sendGoalMessage(goalId, input.trim());
+    } else if (mode === 'creation') {
+      // Use specialist chat functions for creation mode
+      if (activeCategory === 'all') {
+        sendOverviewMessage(input.trim());
+      } else if (activeCategory === 'items' || activeCategory === 'finances' || activeCategory === 'actions') {
+        sendCategoryMessage(activeCategory, input.trim());
+      } else {
+        sendCreationMessage(input.trim());
+      }
     }
 
     setInput('');
@@ -284,7 +356,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-neon min-h-0"
           >
             <AnimatePresence mode="popLayout">
-              {chat.messages.map((message) => (
+              {chat.messages.filter(m => m.content.trim() !== '').map((message) => (
                 <MessageBubble
                   key={message.id}
                   message={message}
@@ -295,19 +367,45 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   onAccept={message.awaitingConfirmation && message.proposalType === 'accept_decline' ? () => handleAccept(message.id) : undefined}
                   onDecline={message.awaitingConfirmation && message.proposalType === 'accept_decline' ? () => handleDecline(message.id) : undefined}
                   isExiting={isExitingGoal}
+                  isLatestProposal={message.awaitingConfirmation ? isLatestProposal(chatId, message.id) : true}
                 />
               ))}
             </AnimatePresence>
 
             {chat.isLoading && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-3"
+              >
+                {/* Avatar */}
+                <motion.div
+                  key={`${persona.emoji}-${persona.name}`}
+                  variants={avatarVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={{ duration: 0.3 }}
+                  className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-neon flex items-center justify-center text-lg neon-glow-cyan"
+                >
+                  {persona.emoji}
+                </motion.div>
+
+                {/* Message bubble with thinking indicator */}
+                <div className="flex-1 max-w-[80%]">
+                  <div className="text-xs text-muted-foreground mb-1 px-1">{persona.name}</div>
+                  <div className="px-4 py-3 rounded-2xl rounded-tl-none bg-muted/50 border border-border/50">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                      <span className="text-sm">Thinking...</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-sm">Thinking...</span>
-              </div>
+              </motion.div>
             )}
 
             <div ref={messagesEndRef} />
@@ -377,13 +475,16 @@ const MessageBubble = React.forwardRef<
     onAccept?: () => void;
     onDecline?: () => void;
     isExiting?: boolean;
+    isLatestProposal?: boolean;
   }
->(({ message, messageId, onConfirm, onEdit, onCancel, onAccept, onDecline, isExiting }, ref) => {
+>(({ message, messageId, onConfirm, onEdit, onCancel, onAccept, onDecline, isExiting, isLatestProposal = true }, ref) => {
   const isUser = message.role === 'user';
   const hasGoalPreview = message.goalPreview && message.awaitingConfirmation;
   // Get isProposalHandled from store
   const { isProposalHandled } = useAppStore();
   const isHandled = messageId ? isProposalHandled(messageId) : false;
+  // Buttons are disabled if proposal was handled OR if it's not the latest proposal
+  const buttonsDisabled = isHandled || !isLatestProposal;
 
   // Render markdown preview with buttons instead of user chat bubbles
   if (hasGoalPreview) {
@@ -415,7 +516,7 @@ const MessageBubble = React.forwardRef<
                 {/* Cancel Button */}
                 <button
                   onClick={onCancel}
-                  disabled={isHandled}
+                  disabled={buttonsDisabled}
                   className={cn(
                     "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
                     isHandled
@@ -433,7 +534,7 @@ const MessageBubble = React.forwardRef<
                 {/* Edit Button */}
                 <button
                   onClick={onEdit}
-                  disabled={isHandled}
+                  disabled={buttonsDisabled}
                   className={cn(
                     "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
                     isHandled
@@ -451,7 +552,7 @@ const MessageBubble = React.forwardRef<
                 {/* Confirm Button */}
                 <button
                   onClick={onConfirm}
-                  disabled={isHandled}
+                  disabled={buttonsDisabled}
                   className={cn(
                     "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
                     isHandled
@@ -475,7 +576,7 @@ const MessageBubble = React.forwardRef<
                 {/* Decline Button */}
                 <button
                   onClick={onDecline}
-                  disabled={isHandled}
+                  disabled={buttonsDisabled}
                   className={cn(
                     "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
                     isHandled
@@ -493,7 +594,7 @@ const MessageBubble = React.forwardRef<
                 {/* Accept Button */}
                 <button
                   onClick={onAccept}
-                  disabled={isHandled}
+                  disabled={buttonsDisabled}
                   className={cn(
                     "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
                     isHandled

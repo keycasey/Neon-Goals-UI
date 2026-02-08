@@ -46,8 +46,9 @@ export interface ItemGoal extends Goal {
   // Card stacking support
   stackId?: string; // Goals with same stackId are grouped together
   stackOrder?: number; // Order within the stack (0 = front)
-  // Search filters for scraping
-  searchFilters?: Record<string, any>; // JSON field for flexible search parameters
+  // Search parameters - backend builds retailerFilters based on searchTerm
+  searchTerm?: string;
+  retailerFilters?: Record<string, any>;
 }
 
 export interface ProductSearchResult {

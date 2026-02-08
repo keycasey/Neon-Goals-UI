@@ -46,10 +46,23 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     ...options.headers,
   };
 
-  return fetch(`${API_BASE}${url}`, {
+  const response = await fetch(`${API_BASE}${url}`, {
     ...options,
     headers,
   });
+
+  // Handle 401 Unauthorized - token expired
+  if (response.status === 401) {
+    // Clear token
+    localStorage.removeItem('auth_token');
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    throw new Error('Session expired. Please log in again.');
+  }
+
+  return response;
 }
 
 export const aiOverviewChatService = {

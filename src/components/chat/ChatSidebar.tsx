@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatPanel } from './ChatPanel';
+import { useAppStore } from '@/store/useAppStore';
 
 interface ChatSidebarProps {
   mode: 'creation' | 'goal';
@@ -19,6 +20,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onToggleMinimize,
   className
 }) => {
+  const activeCategory = useAppStore((state) => state.activeCategory);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [previousMode, setPreviousMode] = useState<'creation' | 'goal'>(mode);
   const [fabGlowPulse, setFabGlowPulse] = useState(false);
@@ -92,6 +94,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <ChatPanel
           mode={mode}
           goalId={goalId}
+          activeCategory={activeCategory}
           className="h-full w-full"
           isMinimized={isMinimized}
           onToggleMinimize={onToggleMinimize}
@@ -179,6 +182,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <ChatPanel
               mode={mode}
               goalId={goalId}
+              activeCategory={activeCategory}
               onClose={() => setMobileOpen(false)}
               className="flex-1 rounded-none"
             />

@@ -12,7 +12,6 @@ import {
   LayoutGrid,
   List,
   ChevronRight,
-  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
@@ -301,81 +300,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
               </span>
             </button>
           ))}
-        </nav>
-
-        {/* AI Chats */}
-        <nav className="p-4 space-y-2 border-t border-sidebar-border">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            AI Chats
-          </p>
-          <button
-            onClick={() => navigate('/chat/overview')}
-            className={cn(
-              "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all",
-              location.pathname === '/chat/overview'
-                ? "bg-sidebar-accent neon-border text-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <MessageSquare className={cn(
-                "w-5 h-5",
-                location.pathname === '/chat/overview' && "neon-text-purple"
-              )} />
-              <span className="font-medium">Overview</span>
-            </div>
-          </button>
-          <button
-            onClick={() => navigate('/chat/items')}
-            className={cn(
-              "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all",
-              location.pathname === '/chat/items'
-                ? "bg-sidebar-accent neon-border text-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <ShoppingBag className={cn(
-                "w-5 h-5",
-                location.pathname === '/chat/items' && "neon-text-blue"
-              )} />
-              <span className="font-medium">Items</span>
-            </div>
-          </button>
-          <button
-            onClick={() => navigate('/chat/finances')}
-            className={cn(
-              "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all",
-              location.pathname === '/chat/finances'
-                ? "bg-sidebar-accent neon-border text-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <Wallet className={cn(
-                "w-5 h-5",
-                location.pathname === '/chat/finances' && "neon-text-green"
-              )} />
-              <span className="font-medium">Finances</span>
-            </div>
-          </button>
-          <button
-            onClick={() => navigate('/chat/actions')}
-            className={cn(
-              "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all",
-              location.pathname === '/chat/actions'
-                ? "bg-sidebar-accent neon-border text-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <Target className={cn(
-                "w-5 h-5",
-                location.pathname === '/chat/actions' && "neon-text-orange"
-              )} />
-              <span className="font-medium">Actions</span>
-            </div>
-          </button>
         </nav>
 
         {/* Goals List (always visible) */}

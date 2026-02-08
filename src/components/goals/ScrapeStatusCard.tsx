@@ -9,7 +9,7 @@ import type { ItemGoal } from '@/types/goals';
 
 interface ScrapeStatusCardProps {
   goal: ItemGoal;
-  onFiltersUpdate?: (filters: Record<string, any>) => void;
+  onFiltersUpdate?: (filters: any) => void;
   onRefresh?: () => Promise<void>;
   onScrapeComplete?: () => Promise<void>;
 }
@@ -41,13 +41,22 @@ const POLL_INTERVAL = 3000; // Poll every 3 seconds
 
 export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFiltersUpdate, onRefresh, onScrapeComplete }) => {
   const { isChatMinimized, toggleChatMinimized, sendGoalMessage, triggerChatPulse } = useAppStore();
+
+  // Debug logging
+  console.log('[ScrapeStatusCard] Render:', {
+    goalId: goal.id,
+    searchTerm: goal.searchTerm,
+    retailerFilters: goal.retailerFilters,
+    retailerFiltersKeys: goal.retailerFilters ? Object.keys(goal.retailerFilters) : 'undefined',
+    hasRetailerFilters: !!goal.retailerFilters && Object.keys(goal.retailerFilters).length > 0,
+  });
   const [scrapeJobs, setScrapeJobs] = useState<ScrapeJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [filtersJson, setFiltersJson] = useState(JSON.stringify(goal.searchFilters || {}, null, 2));
-  const [jsonError, setJsonError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [filtersJson, setFiltersJson] = useState(JSON.stringify(goal.retailerFilters || {}, null, 2));
+  const [jsonError, setJsonError] = useState<string | null>(null);
   const [previousJobStatus, setPreviousJobStatus] = useState<ScrapeJobStatus | null>(null);
   const [hasRefreshedAfterComplete, setHasRefreshedAfterComplete] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -349,14 +358,37 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
                   </div>
                 )}
 
-                {/* Current Filters Display */}
+                {/* Current Search Parameters Display */}
                 <div className="p-3 rounded-lg bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-2">Current Filters</p>
-                  <pre className="text-xs text-foreground overflow-x-auto">
-                    {goal.searchFilters && Object.keys(goal.searchFilters).length > 0
-                      ? JSON.stringify(goal.searchFilters, null, 2)
-                      : '(empty)'}
-                  </pre>
+                  <p className="text-xs text-muted-foreground mb-2">Search Parameters</p>
+
+                  {/* Search Term */}
+                  <div className="mb-2">
+                    <p className="text-xs text-muted-foreground mb-1">Search Term</p>
+                    <p className="text-sm text-foreground font-medium">
+                      {goal.searchTerm || '(not set)'}
+                    </p>
+                  </div>
+
+                  {/* Retailer Filters (new format) */}
+                  {goal.retailerFilters && Object.keys(goal.retailerFilters).length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Retailer Filters</p>
+                      <pre className="text-xs text-foreground overflow-x-auto bg-background/50 rounded p-2">
+                        {JSON.stringify(goal.retailerFilters, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Search Filters (old format fallback) */}
+                  {!goal.retailerFilters && goal.searchFilters && Object.keys(goal.searchFilters).length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Search Filters</p>
+                      <pre className="text-xs text-foreground overflow-x-auto bg-background/50 rounded p-2">
+                        {JSON.stringify(goal.searchFilters, null, 2)}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

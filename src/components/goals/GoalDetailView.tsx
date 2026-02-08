@@ -669,7 +669,6 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
         <motion.div variants={itemVariants}>
           <ScrapeStatusCard
             goal={latestGoal}
-            onFiltersUpdate={(filters) => updateGoal(latestGoal.id, { searchFilters: filters } as any)}
             onRefresh={() => searchAndUpdateGoal(latestGoal.id)}
             onScrapeComplete={async () => {
               console.log('[ItemGoalDetail] Scrape completed, updating state...');

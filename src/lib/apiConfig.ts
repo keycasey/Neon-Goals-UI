@@ -1,13 +1,15 @@
 /**
  * Dynamic API URL configuration
- * In development, uses the same host as the origin but with port 3001
+ * In development mode, uses the same host as the origin but with port 3001
  * This allows testing from localhost, network IP, or Tailscale URLs
- * In production, uses the configured VITE_API_URL
+ * In production mode, uses the configured VITE_API_URL
+ *
+ * Uses MODE instead of PROD so that 'vite preview --mode development' works correctly
  */
 export const getApiUrl = (): string => {
-  // In development (not production), always use dynamic URL from origin
+  // In development mode, always use dynamic URL from origin
   // This ensures it works for localhost, network IP, or any origin
-  if (!import.meta.env.PROD && typeof window !== 'undefined') {
+  if (import.meta.env.MODE === 'development' && typeof window !== 'undefined') {
     const url = new URL(window.location.origin);
     url.port = '3001'; // Backend API port
     // Remove trailing slash to avoid double slashes when concatenating paths
@@ -18,7 +20,7 @@ export const getApiUrl = (): string => {
     return urlStr;
   }
 
-  // In production, use the configured URL from env
+  // In production mode, use the configured URL from env
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
     // Remove trailing slash to avoid double slashes
