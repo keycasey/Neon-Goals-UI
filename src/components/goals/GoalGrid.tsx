@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 interface GoalGridProps {
   className?: string;
+  sortBy?: string;
 }
 
 // Module-level flag to track if initial animation has played
@@ -25,7 +26,7 @@ const springConfig = {
   damping: 25,
 };
 
-export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
+export const GoalGrid: React.FC<GoalGridProps> = ({ className, sortBy = 'createdAt' }) => {
   const navigate = useNavigate();
   // Always animate on mount - use ref to track if THIS instance has animated
   const hasAnimatedRef = React.useRef(false);
@@ -75,16 +76,49 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className }) => {
     navigate(`/goals/${goalId}`);
   };
 
-  const filteredGoals = goals.filter(goal => {
-    if (goal.status !== 'active') return false;
-    // Filter out subgoals from main display - they'll be shown under their parent
-    if (goal.parentGoalId) return false;
-    if (activeCategory === 'all') return true;
-    if (activeCategory === 'items') return goal.type === 'item';
-    if (activeCategory === 'finances') return goal.type === 'finance';
-    if (activeCategory === 'actions') return goal.type === 'action';
-    return false;
-  });
+  const filteredGoals = useMemo(() => {
+    const filtered = goals.filter(goal => {
+      if (goal.status !== 'active') return false;
+      if (goal.parentGoalId) return false;
+      if (activeCategory === 'all') return true;
+      if (activeCategory === 'items') return goal.type === 'item';
+      if (activeCategory === 'finances') return goal.type === 'finance';
+      if (activeCategory === 'actions') return goal.type === 'action';
+      return false;
+    });
+
+    // Sort
+    return [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'targetDate': {
+          const aDate = a.targetDate ? new Date(a.targetDate).getTime() : Infinity;
+          const bDate = b.targetDate ? new Date(b.targetDate).getTime() : Infinity;
+          return aDate - bDate;
+        }
+        case 'price': {
+          const aPrice = a.type === 'item' ? (a as ItemGoal).bestPrice || 0 : 0;
+          const bPrice = b.type === 'item' ? (b as ItemGoal).bestPrice || 0 : 0;
+          return bPrice - aPrice;
+        }
+        case 'amount': {
+          const aAmt = a.type === 'finance' ? (a as FinanceGoal).targetBalance || 0 : 0;
+          const bAmt = b.type === 'finance' ? (b as FinanceGoal).targetBalance || 0 : 0;
+          return bAmt - aAmt;
+        }
+        case 'taskCount': {
+          const aTasks = a.type === 'action' ? ((a as ActionGoal).tasks?.length || 0) : 0;
+          const bTasks = b.type === 'action' ? ((b as ActionGoal).tasks?.length || 0) : 0;
+          return bTasks - aTasks;
+        }
+        case 'createdAt':
+        default: {
+          const aTime = new Date(a.createdAt).getTime();
+          const bTime = new Date(b.createdAt).getTime();
+          return bTime - aTime;
+        }
+      }
+    });
+  }, [goals, activeCategory, sortBy]);
 
   // Group item goals by stackId
   const { stackedGoals, individualGoals } = useMemo(() => {

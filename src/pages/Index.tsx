@@ -4,6 +4,7 @@ import { SIDEBAR_WIDTH, SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar
 import { GoalGrid } from '@/components/goals/GoalGrid';
 import { GoalDetailView } from '@/components/goals/GoalDetailView';
 import { FinancialSummary } from '@/components/goals/FinancialSummary';
+import { GoalSortBar } from '@/components/goals/GoalSortBar';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import type { Goal } from '@/types/goals';
@@ -22,6 +23,7 @@ const findGoalById = (goals: Goal[], id: string): Goal | null => {
 
 const Index = () => {
   const [isDesktop, setIsDesktop] = useState(false);
+  const [sortBy, setSortBy] = useState('createdAt');
   const hasClearedGoal = React.useRef(false);
 
   const {
@@ -127,8 +129,15 @@ const Index = () => {
             <FinancialSummary className="mb-6" />
           )}
 
+          {/* Sort Bar */}
+          <GoalSortBar
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            className="mb-4"
+          />
+
           {/* Goal Cards Grid */}
-          <GoalGrid />
+          <GoalGrid sortBy={sortBy} />
         </main>
       </motion.div>
 

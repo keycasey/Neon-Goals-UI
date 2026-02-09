@@ -210,25 +210,23 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
         )}
 
         {/* Price & Buy */}
-        <div className="pt-3 border-t border-border/30 space-y-2">
+        <div className="pt-3 border-t border-border/30">
           {hasValidSelection ? (
             <>
-              {/* Status Badge moved above Buy */}
-              {status && !isSearchingState && (
-                <div className="mb-2">
-                  <span className={cn(status.class, "flex items-center gap-1 w-fit")}>
-                    {(latestGoal.statusBadge === 'price_drop' || latestGoal.statusBadge === 'price-drop') && <TrendingDown className="w-3 h-3" />}
-                    {(latestGoal.statusBadge === 'in_stock' || latestGoal.statusBadge === 'in-stock') && <Package className="w-3 h-3" />}
-                    {status.label}
-                  </span>
-                </div>
-              )}
-              <p className="text-2xl font-heading font-bold neon-text-cyan">
+              <p className="text-2xl font-heading font-bold neon-text-cyan mb-2">
                 {latestGoal.currency === 'USD' ? '$' : latestGoal.currency}
                 {latestGoal.bestPrice.toLocaleString()}
               </p>
               <div className="flex items-center justify-between">
                 <div>
+                  {/* Status Badge - vertically centered with price */}
+                  {status && !isSearchingState && (
+                    <span className={cn(status.class, "flex items-center gap-1 w-fit mb-1")}>
+                      {(latestGoal.statusBadge === 'price_drop' || latestGoal.statusBadge === 'price-drop') && <TrendingDown className="w-3 h-3" />}
+                      {(latestGoal.statusBadge === 'in_stock' || latestGoal.statusBadge === 'in-stock') && <Package className="w-3 h-3" />}
+                      {status.label}
+                    </span>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Best price at
                   </p>
@@ -249,16 +247,18 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-heading font-bold text-muted-foreground/50">
-                  TBD
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Select an option to see details
-                </p>
+            <>
+              <p className="text-2xl font-heading font-bold text-muted-foreground/50 mb-2">
+                TBD
+              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground pr-4">
+                    Select an option to see details
+                  </p>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
