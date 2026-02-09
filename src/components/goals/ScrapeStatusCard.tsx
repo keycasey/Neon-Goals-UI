@@ -261,137 +261,81 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Search Filters JSON Editor */}
-            {isEditing ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-foreground">Search Filters</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setJsonError(null);
-                      }}
-                      className="px-3 py-1 text-sm rounded-lg bg-muted/30 text-muted-foreground hover:text-foreground transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSaveFilters}
-                      disabled={!!jsonError}
-                      className={cn(
-                        "px-3 py-1 text-sm rounded-lg transition-all",
-                        jsonError
-                          ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
-                          : "bg-primary text-primary-foreground hover:scale-105"
-                      )}
-                    >
-                      Save
-                    </button>
+            <div className="space-y-3">
+              {/* Job Details */}
+              {latestJob && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Job ID</span>
+                    <span className="text-foreground font-mono text-xs">
+                      {typeof latestJob.id === 'string' ? latestJob.id.slice(0, 8) + '...' : 'N/A'}
+                    </span>
                   </div>
-                </div>
-                <textarea
-                  value={filtersJson}
-                  onChange={(e) => {
-                    setFiltersJson(e.target.value);
-                    try {
-                      JSON.parse(e.target.value);
-                      setJsonError(null);
-                    } catch {
-                      setJsonError('Invalid JSON');
-                    }
-                  }}
-                  className={cn(
-                    "w-full h-40 p-3 rounded-lg bg-muted/30 border text-sm font-mono",
-                    jsonError
-                      ? "border-destructive/50 text-destructive"
-                      : "border-border/50 text-foreground focus:border-primary/50"
-                  )}
-                  placeholder="Enter search filters as JSON..."
-                />
-                {jsonError && (
-                  <p className="text-xs text-destructive">{jsonError}</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {/* Job Details */}
-                {latestJob && (
-                  <div className="space-y-2">
+
+                  {latestJob.startedAt && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Job ID</span>
-                      <span className="text-foreground font-mono text-xs">
-                        {typeof latestJob.id === 'string' ? latestJob.id.slice(0, 8) + '...' : 'N/A'}
+                      <span className="text-muted-foreground">Started</span>
+                      <span className="text-foreground">
+                        {new Date(latestJob.startedAt).toLocaleTimeString()}
                       </span>
                     </div>
+                  )}
 
-                    {latestJob.startedAt && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Started</span>
-                        <span className="text-foreground">
-                          {new Date(latestJob.startedAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    )}
-
-                    {latestJob.completedAt && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Completed</span>
-                        <span className="text-foreground">
-                          {new Date(latestJob.completedAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Error Message */}
-                    {latestJob.error && (
-                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                        <div className="flex items-start gap-2">
-                          <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-destructive">Error</p>
-                            <p className="text-xs text-destructive/80 mt-1">{latestJob.error}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Current Search Parameters Display */}
-                <div className="p-3 rounded-lg bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-2">Search Parameters</p>
-
-                  {/* Search Term */}
-                  <div className="mb-2">
-                    <p className="text-xs text-muted-foreground mb-1">Search Term</p>
-                    <p className="text-sm text-foreground font-medium">
-                      {goal.searchTerm || '(not set)'}
-                    </p>
-                  </div>
-
-                  {/* Retailer Filters (new format) */}
-                  {goal.retailerFilters && Object.keys(goal.retailerFilters).length > 0 && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Retailer Filters</p>
-                      <pre className="text-xs text-foreground overflow-x-auto bg-background/50 rounded p-2">
-                        {JSON.stringify(goal.retailerFilters, null, 2)}
-                      </pre>
+                  {latestJob.completedAt && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Completed</span>
+                      <span className="text-foreground">
+                        {new Date(latestJob.completedAt).toLocaleTimeString()}
+                      </span>
                     </div>
                   )}
 
-                  {/* Search Filters (old format fallback) */}
-                  {!goal.retailerFilters && goal.searchTerm && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Search Term</p>
-                      <pre className="text-xs text-foreground overflow-x-auto bg-background/50 rounded p-2">
-                        {goal.searchTerm}
-                      </pre>
+                  {/* Error Message */}
+                  {latestJob.error && (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                      <div className="flex items-start gap-2">
+                        <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-destructive">Error</p>
+                          <p className="text-xs text-destructive/80 mt-1">{latestJob.error}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Current Search Parameters Display */}
+              <div className="p-3 rounded-lg bg-muted/30">
+                {/* Search Term */}
+                <div className="mb-2">
+                  <p className="text-xs text-muted-foreground mb-1">Search Term</p>
+                  <p className="text-sm text-foreground font-medium">
+                    {goal.searchTerm || '(not set)'}
+                  </p>
+                </div>
+
+                {/* Retailer Filters (new format) */}
+                {goal.retailerFilters && Object.keys(goal.retailerFilters).length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Retailer Filters</p>
+                    <pre className="text-xs text-foreground overflow-x-auto bg-background/50 rounded p-2">
+                      {JSON.stringify(goal.retailerFilters, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Search Filters (old format fallback) */}
+                {!goal.retailerFilters && goal.searchTerm && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Search Term</p>
+                    <pre className="text-xs text-foreground overflow-x-auto bg-background/50 rounded p-2">
+                      {goal.searchTerm}
+                    </pre>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

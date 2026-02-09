@@ -18,6 +18,7 @@ import Login from "./pages/Login";
 import Callback from "./pages/Callback";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { apiClient } from "./services/apiClient";
 
 const queryClient = new QueryClient();
 
@@ -99,7 +100,25 @@ const MainLayout = () => {
 // Inner app component that initializes the store
 const AppContent = () => {
   const initializeApp = useAppStore((state) => state.initializeApp);
+  const logout = useAppStore((state) => state.logout);
+  const navigate = useNavigate();
+  const location = useLocation();
   useKeyboardShortcuts(); // Initialize keyboard shortcuts
+
+  // Register 401 callback to properly log out (clear user state + redirect)
+  useEffect(() => {
+    apiClient.setUnauthorizedCallback(() => {
+      // Clear user state from Zustand store
+      logout();
+      // Redirect to login, preserving the intended destination
+      navigate('/login', { state: { from: location }, replace: true });
+    });
+
+    // Cleanup callback on unmount
+    return () => {
+      apiClient.setUnauthorizedCallback(null);
+    };
+  }, [logout, navigate, location]);
 
   useEffect(() => {
     initializeApp();

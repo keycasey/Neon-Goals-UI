@@ -26,7 +26,7 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const subgoalsRef = useRef<HTMLDivElement>(null);
-  
+
   // Use Modular Assembly progress calculation
   const progressBreakdown = getProgressBreakdown(goal);
   const isComplete = isFullyComplete(goal);
@@ -76,7 +76,7 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
         onClick={() => !isExpanded && onViewDetail(goal.id)}
       >
         {/* Header */}
-        <div className="flex items-start gap-3 mb-4 pr-12">
+        <div className="flex items-start gap-3 mb-4">
           <div className="flex-1">
             <h3 className="font-heading font-semibold text-foreground text-lg mb-1">
               {goal.title}
@@ -98,139 +98,139 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
           </button>
         </div>
 
-      {/* Progress Circle */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className="relative w-16 h-16">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-            {/* Background circle */}
-            <circle
-              cx="18"
-              cy="18"
-              r="16"
-              fill="none"
-              stroke="hsl(var(--muted))"
-              strokeWidth="3"
-            />
-            {/* Progress circle */}
-            <motion.circle
-              cx="18"
-              cy="18"
-              r="16"
-              fill="none"
-              stroke={isComplete ? "white" : "url(#progressGradient)"}
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={`${progress}, 100`}
-              initial={{ strokeDasharray: '0, 100' }}
-              animate={{ strokeDasharray: `${progress}, 100` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              style={{
-                filter: isComplete ? 'drop-shadow(0 0 8px white)' : undefined,
-              }}
-            />
-            <defs>
-              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="var(--neon-lime)" />
-                <stop offset="100%" stopColor="var(--neon-cyan)" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className={cn(
-              "font-heading font-bold text-sm",
-              isComplete ? "text-white" : "text-foreground"
-            )}
-            style={{
-              textShadow: isComplete ? '0 0 8px white' : undefined,
-            }}>
-              {progress}%
-            </span>
-          </div>
-        </div>
-
-        <div className="flex-1">
-          {/* Modular Assembly Stats */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-[var(--neon-cyan)]" />
+        {/* Progress Circle */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative w-16 h-16">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+              {/* Background circle */}
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="hsl(var(--muted))"
+                strokeWidth="3"
+              />
+              {/* Progress circle */}
+              <motion.circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke={isComplete ? "white" : "url(#progressGradient)"}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${progress}, 100`}
+                initial={{ strokeDasharray: '0, 100' }}
+                animate={{ strokeDasharray: `${progress}, 100` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                style={{
+                  filter: isComplete ? 'drop-shadow(0 0 8px white)' : undefined,
+                }}
+              />
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="var(--neon-lime)" />
+                  <stop offset="100%" stopColor="var(--neon-cyan)" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
               <span className={cn(
-                "text-sm font-medium",
+                "font-heading font-bold text-sm",
                 isComplete ? "text-white" : "text-foreground"
-              )}>
-                {completedTasks}/{totalTasks} tasks
+              )}
+                style={{
+                  textShadow: isComplete ? '0 0 8px white' : undefined,
+                }}>
+                {progress}%
               </span>
             </div>
-            {subgoals.length > 0 && (
+          </div>
+
+          <div className="flex-1">
+            {/* Modular Assembly Stats */}
+            <div className="flex items-center gap-3 mb-2">
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[var(--neon-magenta)]" />
-                <span className="text-sm text-muted-foreground">
-                  {progressBreakdown.subgoalsCompleted}/{progressBreakdown.subgoalsTotal} subgoals
+                <div className="w-2 h-2 rounded-full bg-[var(--neon-cyan)]" />
+                <span className={cn(
+                  "text-sm font-medium",
+                  isComplete ? "text-white" : "text-foreground"
+                )}>
+                  {completedTasks}/{totalTasks} tasks
                 </span>
               </div>
-            )}
-          </div>
-          
-          {/* Task & Subgoal Dots */}
-          <div className="flex flex-wrap gap-1.5">
-            {/* Task dots - cyan */}
-            {goal.tasks.slice(0, 6).map((task) => (
-              <div
-                key={task.id}
-                className={cn(
-                  "w-2.5 h-2.5 rounded-full transition-all",
-                  task.completed 
-                    ? "bg-success neon-glow-lime" 
-                    : "bg-[var(--neon-cyan)]/30"
-                )}
-              />
-            ))}
-            {/* Subgoal dots - magenta */}
-            {subgoals.slice(0, 4).map((subgoal) => (
-              <div
-                key={subgoal.id}
-                className={cn(
-                  "w-2.5 h-2.5 rounded-sm transition-all",
-                  subgoal.status === 'completed' 
-                    ? "bg-success neon-glow-lime" 
-                    : "bg-[var(--neon-magenta)]/30"
-                )}
-              />
-            ))}
-            {(goal.tasks.length > 6 || subgoals.length > 4) && (
-              <span className="text-xs text-muted-foreground ml-1">
-                +{Math.max(0, goal.tasks.length - 6) + Math.max(0, subgoals.length - 4)}
-              </span>
-            )}
+              {subgoals.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[var(--neon-magenta)]" />
+                  <span className="text-sm text-muted-foreground">
+                    {progressBreakdown.subgoalsCompleted}/{progressBreakdown.subgoalsTotal} subgoals
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Task & Subgoal Dots */}
+            <div className="flex flex-wrap gap-1.5">
+              {/* Task dots - cyan */}
+              {goal.tasks.slice(0, 6).map((task) => (
+                <div
+                  key={task.id}
+                  className={cn(
+                    "w-2.5 h-2.5 rounded-full transition-all",
+                    task.completed
+                      ? "bg-success neon-glow-lime"
+                      : "bg-[var(--neon-cyan)]/30"
+                  )}
+                />
+              ))}
+              {/* Subgoal dots - magenta */}
+              {subgoals.slice(0, 4).map((subgoal) => (
+                <div
+                  key={subgoal.id}
+                  className={cn(
+                    "w-2.5 h-2.5 rounded-sm transition-all",
+                    subgoal.status === 'completed'
+                      ? "bg-success neon-glow-lime"
+                      : "bg-[var(--neon-magenta)]/30"
+                  )}
+                />
+              ))}
+              {(goal.tasks.length > 6 || subgoals.length > 4) && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  +{Math.max(0, goal.tasks.length - 6) + Math.max(0, subgoals.length - 4)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Next Task Preview */}
-      {nextTask && (
-        <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-          <p className="text-xs text-muted-foreground mb-1">Next up:</p>
-          <div className="flex items-center gap-2">
-            <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm text-foreground truncate">{nextTask.title}</span>
+        {/* Next Task Preview */}
+        {nextTask && (
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
+            <p className="text-xs text-muted-foreground mb-1">Next up:</p>
+            <div className="flex items-center gap-2">
+              <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm text-foreground truncate">{nextTask.title}</span>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* View Tasks Button */}
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/30">
-        <span className="text-xs text-muted-foreground">
-          Updated {new Date(goal.updatedAt).toLocaleDateString()}
-        </span>
-        {subgoals.length > 0 && (
-          <button
-            onClick={(e) => { e.stopPropagation(); toggleExpanded(); }}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:neon-text-cyan transition-all"
-          >
-            {isExpanded ? 'Collapse' : 'View Subgoals'}
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
         )}
-      </div>
+
+        {/* View Tasks Button */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/30">
+          <span className="text-xs text-muted-foreground">
+            Updated {new Date(goal.updatedAt).toLocaleDateString()}
+          </span>
+          {subgoals.length > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleExpanded(); }}
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:neon-text-cyan transition-all"
+            >
+              {isExpanded ? 'Collapse' : 'View Subgoals'}
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {/* Expanded Subgoals */}
@@ -263,7 +263,7 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
               >
                 {/* Magenta accent line on left edge */}
                 <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-[hsl(var(--neon-magenta))] rounded-full" />
-                
+
                 {/* Header */}
                 <div className="flex items-start justify-between mb-2 pl-2">
                   <div className="flex-1">

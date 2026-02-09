@@ -77,7 +77,7 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
         onClick={() => !isExpanded && onViewDetail(goal.id)}
       >
         {/* Header */}
-        <div className="flex items-start gap-3 mb-4 pr-24">
+        <div className="flex items-start gap-3 mb-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-sunset flex items-center justify-center text-2xl">
             {goal.institutionIcon}
           </div>
@@ -109,80 +109,80 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
           </button>
         </div>
 
-      {/* Balance */}
-      <div className="mb-4">
-        <div className="flex items-baseline gap-3">
-          <p className="text-3xl font-heading font-bold neon-text-magenta">
-            ${goal.currentBalance.toLocaleString()}
+        {/* Balance */}
+        <div className="mb-4">
+          <div className="flex items-baseline gap-3">
+            <p className="text-3xl font-heading font-bold neon-text-magenta">
+              ${goal.currentBalance.toLocaleString()}
+            </p>
+            <div className={cn(
+              "flex items-center gap-1 text-sm font-medium",
+              trend >= 0 ? "text-success" : "text-destructive"
+            )}>
+              {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              {trend >= 0 ? '+' : ''}{trendPercent}%
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            ${remaining.toLocaleString()} to goal
           </p>
-          <div className={cn(
-            "flex items-center gap-1 text-sm font-medium",
-            trend >= 0 ? "text-success" : "text-destructive"
-          )}>
-            {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {trend >= 0 ? '+' : ''}{trendPercent}%
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+            <span>Progress</span>
+            <span>{progress.toFixed(0)}%</span>
+          </div>
+          <div className="progress-neon">
+            <motion.div
+              className="progress-neon-fill"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+            />
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          ${remaining.toLocaleString()} to goal
-        </p>
-      </div>
 
-      {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-          <span>Progress</span>
-          <span>{progress.toFixed(0)}%</span>
+        {/* Mini Sparkline */}
+        <div className="flex items-end justify-between h-10 gap-0.5">
+          {goal.progressHistory.map((value, index) => {
+            const height = ((value - minVal) / range) * 100;
+            const isLast = index === goal.progressHistory.length - 1;
+
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "flex-1 rounded-t transition-all",
+                  isLast ? "bg-gradient-neon" : "bg-muted-foreground/30"
+                )}
+                style={{ height: `${Math.max(height, 10)}%` }}
+              />
+            );
+          })}
         </div>
-        <div className="progress-neon">
-          <motion.div
-            className="progress-neon-fill"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          />
-        </div>
-      </div>
 
-      {/* Mini Sparkline */}
-      <div className="flex items-end justify-between h-10 gap-0.5">
-        {goal.progressHistory.map((value, index) => {
-          const height = ((value - minVal) / range) * 100;
-          const isLast = index === goal.progressHistory.length - 1;
-          
-          return (
-            <div
-              key={index}
-              className={cn(
-                "flex-1 rounded-t transition-all",
-                isLast ? "bg-gradient-neon" : "bg-muted-foreground/30"
-              )}
-              style={{ height: `${Math.max(height, 10)}%` }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/30">
-        <p className="text-xs text-muted-foreground">
-          Target: ${goal.targetBalance.toLocaleString()}
-          {goal.targetDate && (
-            <span className="ml-2">
-              by {new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </span>
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/30">
+          <p className="text-xs text-muted-foreground">
+            Target: ${goal.targetBalance.toLocaleString()}
+            {goal.targetDate && (
+              <span className="ml-2">
+                by {new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            )}
+          </p>
+          {subgoals.length > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleExpanded(); }}
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:neon-text-magenta transition-all"
+            >
+              {isExpanded ? 'Collapse' : 'View Subgoals'}
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
           )}
-        </p>
-        {subgoals.length > 0 && (
-          <button
-            onClick={(e) => { e.stopPropagation(); toggleExpanded(); }}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:neon-text-magenta transition-all"
-          >
-            {isExpanded ? 'Collapse' : 'View Subgoals'}
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-        )}
-      </div>
+        </div>
       </motion.div>
 
       {/* Expanded Subgoals */}

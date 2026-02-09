@@ -123,11 +123,34 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
 
             {/* TARGET ACQUIRED overlay on product image */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="px-4 py-2 rounded-lg bg-background/70 backdrop-blur-sm border border-primary/50">
-                <span className="font-mono font-bold text-sm tracking-wider text-primary neon-text-cyan">
+              <motion.div
+                animate={{
+                  boxShadow: [
+                    '0 0 20px rgba(0, 240, 255, 0.5)',
+                    '0 0 60px rgba(0, 240, 255, 0.8)',
+                    '0 0 20px rgba(0, 240, 255, 0.5)',
+                  ],
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                className="px-4 py-2 rounded-lg bg-background/70 backdrop-blur-sm border border-primary/50"
+              >
+                <motion.span
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                  className="font-mono font-bold text-sm tracking-wider text-primary neon-text-cyan block"
+                >
                   TARGET ACQUIRED
-                </span>
-              </div>
+                </motion.span>
+              </motion.div>
             </div>
           </>
         )}

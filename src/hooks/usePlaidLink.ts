@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePlaidLink as usePlaidLinkLib, PlaidLinkOptions, PlaidLinkOnSuccess, PlaidLinkOnExit } from 'react-plaid-link';
 import { plaidService, type PlaidAccount } from '@/services/plaidService';
+import { useAppStore } from '@/store/useAppStore';
 
 interface UsePlaidLinkReturn {
   open: () => void;
@@ -13,23 +14,55 @@ interface UsePlaidLinkReturn {
   isSyncing: string | null;
 }
 
+// Demo Plaid accounts for demonstration
+const DEMO_PLAID_ACCOUNTS: PlaidAccount[] = [
+  {
+    id: 'demo-checking-1',
+    name: 'Demo Checking Account',
+    type: 'depository',
+    subtype: 'checking',
+    balance: 5000,
+    currency: 'USD',
+    mask: '1234',
+    institutionName: 'Demo Bank',
+  },
+  {
+    id: 'demo-savings-1',
+    name: 'Demo Savings Account',
+    type: 'depository',
+    subtype: 'savings',
+    balance: 25000,
+    currency: 'USD',
+    mask: '5678',
+    institutionName: 'Demo Bank',
+  },
+];
+
 export const usePlaid = (): UsePlaidLinkReturn => {
+  const { isDemoMode } = useAppStore();
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<PlaidAccount[]>([]);
   const [isSyncing, setIsSyncing] = useState<string | null>(null);
+  const openRef = useRef<(() => void) | null>(null);
 
   // Fetch existing linked accounts on mount
   const fetchAccounts = useCallback(async () => {
+    // Skip API call in demo mode, use demo data
+    if (isDemoMode) {
+      setAccounts(DEMO_PLAID_ACCOUNTS);
+      return;
+    }
+
     try {
       const fetchedAccounts = await plaidService.getAccounts();
       setAccounts(fetchedAccounts);
     } catch (err) {
-      console.error('Failed to fetch Plaid accounts:', err);
-      // Don't set error for fetch failure - just means no accounts yet
+      // Silently ignore errors - just means no accounts linked
+      setAccounts([]);
     }
-  }, []);
+  }, [isDemoMode]);
 
   useEffect(() => {
     fetchAccounts();
@@ -40,12 +73,15 @@ export const usePlaid = (): UsePlaidLinkReturn => {
     try {
       setIsLoading(true);
       setError(null);
+      console.log('[usePlaid] Creating link token...');
       const response = await plaidService.createLinkToken();
-      setLinkToken(response.linkToken);
+      console.log('[usePlaid] Link token created:', response.link_token?.substring(0, 10) + '...');
+      return response.link_token;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to initialize Plaid Link';
       setError(message);
-      console.error('Failed to create link token:', err);
+      console.error('[usePlaid] Failed to create link token:', err);
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +91,8 @@ export const usePlaid = (): UsePlaidLinkReturn => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await plaidService.linkAccount(publicToken, metadata);
+      console.log('[usePlaid] Linking account with public token:', publicToken.substring(0, 20) + '...');
+      const response = await plaidService.linkAccount(publicToken);
       if (response.accounts) {
         setAccounts(prev => [...prev, ...response.accounts]);
       }
@@ -79,27 +116,59 @@ export const usePlaid = (): UsePlaidLinkReturn => {
     setLinkToken(null);
   }, []);
 
+  // Only initialize Plaid Link when we have a token
   const config: PlaidLinkOptions = {
-    token: linkToken,
+    token: linkToken || '',
     onSuccess,
     onExit,
   };
 
   const { open, ready } = usePlaidLinkLib(config);
 
+  // Store the open function in a ref so we can call it after token creation
+  useEffect(() => {
+    if (ready) {
+      openRef.current = open;
+    }
+  }, [ready, open]);
+
   // Combined open: create token then open
   const handleOpen = useCallback(async () => {
-    if (!linkToken) {
-      await createLinkToken();
-    }
-  }, [linkToken, createLinkToken]);
+    console.log('[usePlaid] Opening Plaid Link...');
 
-  // Auto-open when link token is ready
-  useEffect(() => {
-    if (linkToken && ready) {
-      open();
+    // In demo mode, just show an alert
+    if (isDemoMode) {
+      alert('Demo mode: Plaid Link is not available. Demo accounts are already shown.');
+      return;
     }
-  }, [linkToken, ready, open]);
+
+    // Create a fresh token
+    const token = await createLinkToken();
+    if (!token) {
+      console.error('[usePlaid] Failed to create link token');
+      return;
+    }
+
+    // Set the token - this will trigger the Plaid Link initialization
+    setLinkToken(token);
+
+    // Wait for Plaid Link to become ready, then open
+    const checkReady = setInterval(() => {
+      if (openRef.current) {
+        clearInterval(checkReady);
+        console.log('[usePlaid] Plaid Link is ready, opening...');
+        openRef.current();
+      }
+    }, 100);
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      clearInterval(checkReady);
+      if (!openRef.current) {
+        console.error('[usePlaid] Timeout waiting for Plaid Link to be ready');
+      }
+    }, 5000);
+  }, [createLinkToken, isDemoMode]);
 
   const syncAccount = useCallback(async (accountId: string) => {
     try {

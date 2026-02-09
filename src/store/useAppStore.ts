@@ -1913,6 +1913,11 @@ export const useAppStore = create<AppState>()(
       },
 
       fetchGoals: async () => {
+        // Skip API call in demo mode
+        if (get().isDemoMode) {
+          return;
+        }
+
         try {
           set({ isLoading: true, error: null });
           const category = get().activeCategory;

@@ -28,8 +28,9 @@ export interface PlaidTransaction {
 }
 
 export interface LinkTokenResponse {
-  linkToken: string;
+  link_token: string;
   expiration: string;
+  request_id: string;
 }
 
 export interface LinkAccountResponse {
@@ -44,10 +45,9 @@ export const plaidService = {
   },
 
   /** Exchange public token and save accounts */
-  async linkAccount(publicToken: string, metadata: any): Promise<LinkAccountResponse> {
+  async linkAccount(publicToken: string): Promise<LinkAccountResponse> {
     return apiClient.post<LinkAccountResponse>('/plaid/link-account', {
       publicToken,
-      metadata,
     });
   },
 

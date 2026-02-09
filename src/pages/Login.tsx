@@ -145,9 +145,9 @@ const Login = () => {
                'Welcome Back'}
             </h1>
             <p className="text-muted-foreground">
-              {authMode === 'register' ? 'Start crushing your goals 🌴' :
+              {authMode === 'register' ? 'Start crushing your goals.' :
                authMode === 'verify' ? 'Check your inbox 📧' :
-               'Sign in to crush your goals 🌴'}
+               'Sign in to crush your goals.'}
             </p>
           </div>
 
@@ -368,16 +368,6 @@ const Login = () => {
             By signing in, you agree to our Terms of Service and Privacy Policy
           </motion.p>
         </div>
-
-        {/* Tagline */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="text-center text-sm text-muted-foreground mt-6"
-        >
-          Goals-AF — Crush your goals in style
-        </motion.p>
       </motion.div>
     </div>
   );

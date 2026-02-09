@@ -1,21 +1,21 @@
 import { API_BASE_URL } from '@/lib/apiConfig';
 
-// Endpoints that should not trigger redirect on 401 (non-critical, can fail silently)
-const SKIP_AUTH_REDIRECT_ENDPOINTS = [
-  '/plaid/accounts',
-  '/chats/overview',
-  '/chats/category',
-  '/chats/goal',
-];
+type UnauthorizedCallback = () => void;
 
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
+  private onUnauthorized: UnauthorizedCallback | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
     // Load token from localStorage
     this.token = localStorage.getItem('auth_token');
+  }
+
+  // Set callback for 401 handling (called instead of automatic redirect)
+  setUnauthorizedCallback(callback: UnauthorizedCallback | null) {
+    this.onUnauthorized = callback;
   }
 
   setToken(token: string) {
@@ -29,14 +29,22 @@ class ApiClient {
   }
 
   /**
-   * Handle 401 Unauthorized errors by logging out and redirecting to login
+   * Handle 401 Unauthorized errors
+   * If a callback is registered, it will be called instead of automatic redirect
    */
   private handleUnauthorized() {
     // Clear token
     this.clearToken();
     // Clear all auth-related storage
     localStorage.removeItem('auth_token');
-    // Redirect to login page
+
+    // Call registered callback if available (handles user state + redirect)
+    if (this.onUnauthorized) {
+      this.onUnauthorized();
+      return;
+    }
+
+    // Fallback: redirect to login page (only if no callback registered)
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
     }
@@ -73,14 +81,7 @@ class ApiClient {
 
     // Handle 401 Unauthorized - token expired
     if (response.status === 401) {
-      // Check if this endpoint should skip the auth redirect
-      const shouldSkipRedirect = SKIP_AUTH_REDIRECT_ENDPOINTS.some(skipEndpoint =>
-        endpoint.startsWith(skipEndpoint)
-      );
-
-      if (!shouldSkipRedirect) {
-        this.handleUnauthorized();
-      }
+      this.handleUnauthorized();
       throw new Error('Session expired. Please log in again.');
     }
 
@@ -150,14 +151,7 @@ class ApiClient {
 
     // Handle 401 Unauthorized - token expired
     if (response.status === 401) {
-      // Check if this endpoint should skip the auth redirect
-      const shouldSkipRedirect = SKIP_AUTH_REDIRECT_ENDPOINTS.some(skipEndpoint =>
-        endpoint.startsWith(skipEndpoint)
-      );
-
-      if (!shouldSkipRedirect) {
-        this.handleUnauthorized();
-      }
+      this.handleUnauthorized();
       throw new Error('Session expired. Please log in again.');
     }
 

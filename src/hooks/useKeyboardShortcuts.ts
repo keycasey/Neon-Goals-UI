@@ -53,7 +53,7 @@ export const useKeyboardShortcuts = () => {
       },
     },
     {
-      key: 'c',
+      key: 'h',
       description: 'Toggle sidebar',
       action: () => {
         setSidebarOpen(!sidebarOpen);
@@ -72,7 +72,7 @@ export const useKeyboardShortcuts = () => {
       description: 'Show keyboard shortcuts',
       action: () => {
         // Could show a modal with shortcuts
-        alert('Keyboard Shortcuts:\nESC - Close goal detail\nN - New goal\nL - Login/Logout\nC - Toggle sidebar\n/ - Search\n? - Show this help');
+        alert('Keyboard Shortcuts:\nESC - Close goal detail\nN - New goal\nL - Login/Logout\nH - Toggle sidebar\n/ - Search\n? - Show this help');
       },
     },
   ];
@@ -113,7 +113,7 @@ export const allShortcuts: Array<{ key: string; description: string }> = [
   { key: 'ESC', description: 'Close goal detail or modal' },
   { key: 'N', description: 'New goal (opens chat)' },
   { key: 'L', description: 'Login / Logout' },
-  { key: 'C', description: 'Toggle sidebar' },
+  { key: 'H', description: 'Toggle sidebar' },
   { key: '/', description: 'Search (coming soon)' },
   { key: '?', description: 'Show keyboard shortcuts' },
 ];
