@@ -181,36 +181,48 @@ export const StackedItemGoalCard = React.forwardRef<
           </p>
 
           {/* Price & Expand - cohesive with Buy cards */}
-          <div className="pt-3 border-t border-border/30 space-y-2">
-            <div className="flex items-center justify-between">
-              {goalsWithValidSelection > 0 ? (
-                <div>
-                  <p className="text-2xl font-heading font-bold neon-text-cyan">
-                    ${totalPrice.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Best price for {goalsWithValidSelection} of {sortedGoals.length} items
-                  </p>
+          <div className="pt-3 border-t border-border/30">
+            {goalsWithValidSelection > 0 ? (
+              <>
+                <p className="text-2xl font-heading font-bold neon-text-cyan mb-2">
+                  ${totalPrice.toLocaleString()}
+                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Best price for {goalsWithValidSelection} of {sortedGoals.length} items
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-neon text-primary-foreground font-medium text-sm transition-all hover:scale-105 neon-glow-cyan"
+                  >
+                    {isExpanded ? 'Collapse' : 'Expand'}
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-2xl font-heading font-bold text-muted-foreground/50">
-                    TBD
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Select options to see total
-                  </p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-heading font-bold text-muted-foreground/50 mb-2">
+                  TBD
+                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground pr-4">
+                      Select options to see total
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-neon text-primary-foreground font-medium text-sm transition-all hover:scale-105 neon-glow-cyan"
+                  >
+                    {isExpanded ? 'Collapse' : 'Expand'}
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
                 </div>
-              )}
-
-              <button
-                onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-neon text-primary-foreground font-medium text-sm transition-all hover:scale-105 neon-glow-cyan"
-              >
-                {isExpanded ? 'Collapse' : 'Expand'}
-                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       </motion.div>

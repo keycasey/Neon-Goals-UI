@@ -18,20 +18,22 @@ interface UsePlaidLinkReturn {
 const DEMO_PLAID_ACCOUNTS: PlaidAccount[] = [
   {
     id: 'demo-checking-1',
-    name: 'Demo Checking Account',
-    type: 'depository',
-    subtype: 'checking',
-    balance: 5000,
+    plaidAccountId: 'demo-plaid-checking-1',
+    accountName: 'Demo Checking Account',
+    accountType: 'checking',
+    accountSubtype: 'checking',
+    currentBalance: 5000,
     currency: 'USD',
     mask: '1234',
     institutionName: 'Demo Bank',
   },
   {
     id: 'demo-savings-1',
-    name: 'Demo Savings Account',
-    type: 'depository',
-    subtype: 'savings',
-    balance: 25000,
+    plaidAccountId: 'demo-plaid-savings-1',
+    accountName: 'Demo Savings Account',
+    accountType: 'savings',
+    accountSubtype: 'savings',
+    currentBalance: 25000,
     currency: 'USD',
     mask: '5678',
     institutionName: 'Demo Bank',
@@ -128,7 +130,7 @@ export const usePlaid = (): UsePlaidLinkReturn => {
   // Store the open function in a ref so we can call it after token creation
   useEffect(() => {
     if (ready) {
-      openRef.current = open;
+      openRef.current = open as () => void;
     }
   }, [ready, open]);
 

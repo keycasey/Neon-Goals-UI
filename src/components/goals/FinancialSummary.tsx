@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import type { FinanceGoal } from '@/types/goals';
 import { PlaidAccountCard } from '@/components/plaid/PlaidAccountCard';
 import { AccountSectionEmpty } from '@/components/plaid/AccountSectionEmpty';
+import { TransactionModal } from '@/components/plaid/TransactionModal';
 import { usePlaid } from '@/hooks/usePlaidLink';
 import { SyncToast, useSyncToast } from '@/components/ui/SyncToast';
 import type { PlaidAccount } from '@/services/plaidService';
@@ -29,6 +30,7 @@ const isDebtType = (type: string) => ['credit', 'loan'].includes(type);
 export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className }) => {
   const { goals, syncFinanceGoal } = useAppStore();
   const [showAccounts, setShowAccounts] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<PlaidAccount | null>(null);
   const syncToast = useSyncToast();
   const { open: openPlaidLink, isLoading: isPlaidLoading, error: plaidError, accounts, syncAccount, isSyncing, fetchAccounts } = usePlaid();
 
@@ -69,7 +71,8 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
   };
 
   const handleAccountClick = (accountId: string) => {
-    console.log('Viewing account:', accountId);
+    const account = accounts.find(a => a.id === accountId);
+    if (account) setSelectedAccount(account);
   };
 
   // Group Plaid accounts by type
@@ -262,6 +265,15 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
         message={syncToast.message}
         onClose={syncToast.close}
       />
+
+      {/* Transaction Modal */}
+      {selectedAccount && (
+        <TransactionModal
+          account={selectedAccount}
+          isOpen={!!selectedAccount}
+          onClose={() => setSelectedAccount(null)}
+        />
+      )}
     </>
   );
 };

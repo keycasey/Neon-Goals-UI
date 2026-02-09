@@ -25,6 +25,15 @@ export interface PlaidTransaction {
   category?: string[];
   pending: boolean;
   merchantName?: string;
+  paymentChannel?: string;
+  location?: {
+    address?: string;
+    city?: string;
+    region?: string;
+    lat?: number;
+    lon?: number;
+  };
+  checkNumber?: string;
 }
 
 export interface LinkTokenResponse {
