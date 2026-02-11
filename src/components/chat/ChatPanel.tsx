@@ -490,6 +490,7 @@ const MessageBubble = React.forwardRef<
 >(({ message, messageId, onConfirm, onEdit, onCancel, onAccept, onDecline, isExiting, isLatestProposal = true }, ref) => {
   const isUser = message.role === 'user';
   const hasGoalPreview = message.goalPreview && message.awaitingConfirmation;
+  const showProposalButtons = message.awaitingConfirmation;
   // Get isProposalHandled from store
   const { isProposalHandled } = useAppStore();
   const isHandled = messageId ? isProposalHandled(messageId) : false;
@@ -632,39 +633,148 @@ const MessageBubble = React.forwardRef<
   }
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={isExiting ? { opacity: 0, y: 30, transition: { duration: 0.3 } } : { opacity: 0 }}
-      className={cn(
-        "flex",
-        isUser ? "justify-end" : "justify-start"
-      )}
-    >
-      <div
+    <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={isExiting ? { opacity: 0, y: 30, transition: { duration: 0.3 } } : { opacity: 0 }}
         className={cn(
-          "max-w-[85%] px-4 py-3 rounded-2xl",
-          isUser
-            ? "bg-gradient-neon text-primary-foreground rounded-tr-sm"
-            : "bg-muted/50 text-foreground rounded-tl-sm border border-border/30"
+          "flex",
+          isUser ? "justify-end" : "justify-start"
         )}
       >
-        {isUser ? (
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
-        ) : (
-          <div className="prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white max-w-none [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
-          </div>
-        )}
-        <p className={cn(
-          "text-[10px] mt-1.5",
-          isUser ? "text-primary-foreground/60" : "text-muted-foreground"
-        )}>
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </p>
-      </div>
-    </motion.div>
+        <div
+          className={cn(
+            "max-w-[85%] px-4 py-3 rounded-2xl",
+            isUser
+              ? "bg-gradient-neon text-primary-foreground rounded-tr-sm"
+              : "bg-muted/50 text-foreground rounded-tl-sm border border-border/30"
+          )}
+        >
+          {isUser ? (
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white max-w-none [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            </div>
+          )}
+          <p className={cn(
+            "text-[10px] mt-1.5",
+            isUser ? "text-primary-foreground/60" : "text-muted-foreground"
+          )}>
+            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Proposal Buttons for messages without goalPreview */}
+      {showProposalButtons && !isUser && (
+        <div className="flex flex-col lg:flex-row lg:justify-start gap-2 mt-2">
+          {/* Confirm/Edit/Cancel Buttons */}
+          {onConfirm && onEdit && onCancel && (
+            <>
+              {/* Cancel Button */}
+              <button
+                onClick={onCancel}
+                disabled={buttonsDisabled}
+                className={cn(
+                  "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                  isHandled
+                    ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                    : "bg-destructive/20 text-destructive hover:bg-destructive/30",
+                  "w-full px-4 py-2",
+                  "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                )}
+              >
+                <X className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                  Cancel
+                </span>
+              </button>
+              {/* Edit Button */}
+              <button
+                onClick={onEdit}
+                disabled={buttonsDisabled}
+                className={cn(
+                  "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                  isHandled
+                    ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                    : "bg-muted text-foreground hover:bg-muted/70",
+                  "w-full px-4 py-2",
+                  "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                )}
+              >
+                <Edit3 className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                  Edit
+                </span>
+              </button>
+              {/* Confirm Button */}
+              <button
+                onClick={onConfirm}
+                disabled={buttonsDisabled}
+                className={cn(
+                  "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                  isHandled
+                    ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                    : "bg-gradient-neon text-primary-foreground neon-glow-cyan",
+                  "w-full px-4 py-2",
+                  "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                )}
+              >
+                <Check className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                  Confirm
+                </span>
+              </button>
+            </>
+          )}
+
+          {/* Accept/Decline Buttons */}
+          {onAccept && onDecline && (
+            <>
+              {/* Decline Button */}
+              <button
+                onClick={onDecline}
+                disabled={buttonsDisabled}
+                className={cn(
+                  "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                  isHandled
+                    ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                    : "bg-destructive/20 text-destructive hover:bg-destructive/30",
+                  "w-full px-4 py-2",
+                  "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                )}
+              >
+                <XCircle className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                  Decline
+                </span>
+              </button>
+              {/* Accept Button */}
+              <button
+                onClick={onAccept}
+                disabled={buttonsDisabled}
+                className={cn(
+                  "group relative flex items-center gap-2 rounded-lg font-medium text-sm transition-all",
+                  isHandled
+                    ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                    : "bg-gradient-neon text-primary-foreground neon-glow-cyan",
+                  "w-full px-4 py-2",
+                  "lg:w-auto lg:px-3 lg:py-2 lg:hover:px-4 lg:justify-center"
+                )}
+              >
+                <CheckCircle className="w-4 h-4 flex-shrink-0 lg:group-hover:-translate-x-2 transition-transform duration-150" />
+                <span className="lg:inline lg:max-w-0 lg:opacity-0 lg:overflow-hidden lg:whitespace-nowrap lg:group-hover:max-w-xs lg:group-hover:opacity-100 transition-all duration-150">
+                  Accept
+                </span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 });
 
