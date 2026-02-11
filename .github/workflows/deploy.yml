@@ -7,35 +7,13 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script_stop: true
-          script: |
-            # Set up environment
-            cd /var/www/Neon-Goals-UI
-
-            # Pull latest changes
-            echo "Pulling latest changes..."
-            git fetch origin
-            git reset --hard origin/main
-
-            # Install dependencies
-            echo "Installing dependencies..."
-            bun install --frozen-lockfile
-
-            # Generate Prisma Client
-            echo "Generating Prisma Client..."
-            bun run db:generate
-
-            # Build the app
-            echo "Building Vite app..."
-            bun run build
-
-            # No need to restart PM2 - Caddy serves static files from dist/
-            echo "Deployment complete! Static files updated in /var/www/Neon-Goals-UI/dist"
+      - name: Deploy
+        run: |
+          cd /var/www/Neon-Goals-UI
+          git fetch origin
+          git reset --hard origin/main
+          bun install --frozen-lockfile
+          bun run db:generate
+          bun run build
