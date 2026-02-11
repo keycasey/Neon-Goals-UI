@@ -69,7 +69,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     if (messageId) {
       markProposalHandled(messageId);
     }
-    if (mode === 'creation') {
+    if (mode === 'goal' || mode === 'creation') {
       confirmPendingCommands();
     } else {
       confirmGoalCreation();
