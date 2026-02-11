@@ -482,7 +482,7 @@ const ItemGoalDetail: React.FC<{ goal: ItemGoal }> = ({ goal }) => {
                 ? 'no_candidates'
                 : selectedCandidate
                 ? 'acquired'
-                : candidateCount > 0
+                : latestGoal.statusBadge === 'candidates_found' || candidateCount > 0
                 ? 'decoding'
                 : 'initiating'
             }

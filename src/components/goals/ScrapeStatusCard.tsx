@@ -112,6 +112,7 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
   };
 
   // Start polling when goal is in searching state
+  // Stop polling when status is candidates_found, in_stock, not_found, or any other terminal state
   useEffect(() => {
     if (goal.statusBadge === 'pending_search' || goal.statusBadge === 'pending-search') {
       shouldStartPollingRef.current = true;
@@ -136,7 +137,7 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
         }
       };
     } else {
-      // Clear interval if not in searching state
+      // Clear interval if not in searching state (candidates_found, in_stock, not_found, etc.)
       shouldStartPollingRef.current = false;
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);

@@ -2,7 +2,13 @@ export type GoalType = 'item' | 'finance' | 'action' | 'group';
 export type GoalStatus = 'active' | 'completed' | 'archived';
 export type GroupLayout = 'grid' | 'list' | 'kanban';
 export type ProgressType = 'average' | 'sum' | 'manual';
-export type ItemStatusBadge = 'in-stock' | 'price-drop' | 'pending-search' | 'in_stock' | 'price_drop' | 'pending_search';
+export type ItemStatusBadge =
+  | 'in-stock' | 'in_stock'
+  | 'price-drop' | 'price_drop'
+  | 'pending-search' | 'pending_search'
+  | 'candidates_found'
+  | 'not_found'
+  | 'not_supported';
 
 export type ScrapeJobStatus = 'pending' | 'running' | 'completed' | 'failed';
 
