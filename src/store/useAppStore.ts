@@ -860,6 +860,7 @@ export const useAppStore = create<AppState>()(
                 ? { ...goal, statusBadge: 'pending_search' }
                 : goal
             ),
+            goalsVersion: state.goalsVersion + 1, // Force re-renders
           }));
 
           // Call the new endpoint
@@ -877,6 +878,7 @@ export const useAppStore = create<AppState>()(
                 ? { ...goal, statusBadge: 'in_stock' }
                 : goal
             ),
+            goalsVersion: state.goalsVersion + 1, // Force re-renders
           }));
         }
       },
