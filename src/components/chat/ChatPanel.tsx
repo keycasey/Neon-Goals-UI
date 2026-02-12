@@ -512,12 +512,12 @@ const MessageBubble = React.forwardRef<
       >
         <div className="max-w-[85%] space-y-3">
           {/* Main message */}
-          <div className="px-4 py-3 rounded-2xl bg-muted/50 text-white rounded-tl-sm border border-border/30 prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white max-w-none [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded">
+          <div className="overflow-x-auto px-4 py-3 rounded-2xl bg-muted/50 text-white rounded-tl-sm border border-border/30 prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white prose-pre:text-white prose-pre-code:text-white max-w-none prose-pre:overflow-x-auto [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:whitespace-nowrap [&_pre]:bg-white/10 [&_pre]:px-3 [&_pre]:py-2 [&_pre]:rounded-lg">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
           </div>
 
           {/* Markdown Preview Card */}
-          <div className="px-4 py-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white max-w-none [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded">
+          <div className="overflow-x-auto px-4 py-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white prose-pre:text-white prose-pre-code:text-white max-w-none prose-pre:overflow-x-auto [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:whitespace-nowrap [&_pre]:bg-white/10 [&_pre]:px-3 [&_pre]:py-2 [&_pre]:rounded-lg">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.goalPreview}</ReactMarkdown>
           </div>
 
