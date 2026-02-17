@@ -45,6 +45,13 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
     return latestGoal.candidates?.some(c => c.id === latestGoal.selectedCandidateId) ?? false;
   }, [latestGoal.selectedCandidateId, latestGoal.candidates]);
 
+  // Get the selected candidate's image (if available)
+  const selectedCandidateImage = useMemo(() => {
+    if (!latestGoal.selectedCandidateId || !latestGoal.candidates) return null;
+    const candidate = latestGoal.candidates.find(c => c.id === latestGoal.selectedCandidateId);
+    return candidate?.image || null;
+  }, [latestGoal.selectedCandidateId, latestGoal.candidates]);
+
   const candidateCount = useMemo(() => {
     if (!latestGoal.candidates) return 0;
     const deniedIds = (latestGoal.deniedCandidates || []).map(c => c.id);
@@ -96,8 +103,8 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
             className="h-full"
           />
         ) : !latestGoal.productImage ||
-           latestGoal.productImage?.includes('unsplash.com') ||
-           !hasValidSelection ||
+           (!hasValidSelection && latestGoal.productImage?.includes('unsplash.com')) ||
+           (!hasValidSelection && !selectedCandidateImage) ||
            isSearchingState ? (
           <ScannerPlaceholder
             status={
@@ -115,7 +122,7 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
         ) : (
           <>
             <img
-              src={latestGoal.productImage}
+              src={hasValidSelection && selectedCandidateImage ? selectedCandidateImage : latestGoal.productImage}
               alt={latestGoal.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
@@ -219,14 +226,6 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
               </p>
               <div className="flex items-center justify-between">
                 <div>
-                  {/* Status Badge - vertically centered with price */}
-                  {status && !isSearchingState && (
-                    <span className={cn(status.class, "flex items-center gap-1 w-fit mb-1")}>
-                      {(latestGoal.statusBadge === 'price_drop' || latestGoal.statusBadge === 'price-drop') && <TrendingDown className="w-3 h-3" />}
-                      {(latestGoal.statusBadge === 'in_stock' || latestGoal.statusBadge === 'in-stock') && <Package className="w-3 h-3" />}
-                      {status.label}
-                    </span>
-                  )}
                   <p className="text-xs text-muted-foreground">
                     Best price at
                   </p>

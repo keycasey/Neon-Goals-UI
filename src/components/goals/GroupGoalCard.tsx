@@ -104,10 +104,6 @@ export const GroupGoalCard: React.FC<GroupGoalCardProps> = ({
               {/* Stats */}
               <div className="flex items-center gap-4 mt-3 text-sm">
                 <div className="flex items-center gap-1">
-                  <FolderOpen className="w-4 h-4 text-primary" />
-                  <span className="text-muted-foreground">{totalItems} items</span>
-                </div>
-                <div className="flex items-center gap-1">
                   <span className="text-primary font-bold">{completedCount}/{totalItems}</span>
                   <span className="text-muted-foreground">completed</span>
                 </div>

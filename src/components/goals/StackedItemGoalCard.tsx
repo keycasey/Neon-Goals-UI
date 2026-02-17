@@ -146,29 +146,6 @@ export const StackedItemGoalCard = React.forwardRef<
             </>
           )}
           
-          {/* Status Badge */}
-          <div className="absolute top-3 left-3">
-            {status ? (
-              <span className={cn(status.class, "flex items-center gap-1")}>
-                {frontGoal.statusBadge.includes('price') && <TrendingDown className="w-3 h-3" />}
-                {frontGoal.statusBadge.includes('stock') && <Package className="w-3 h-3" />}
-                {frontGoal.statusBadge.includes('pending') && <Clock className="w-3 h-3" />}
-                {status.label}
-              </span>
-            ) : null}
-          </div>
-
-          {/* Stack Indicator */}
-          <div className="absolute top-3 right-3">
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background/80 backdrop-blur-sm text-primary font-medium text-xs transition-all hover:bg-primary/20"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              {sortedGoals.length} items
-              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-          </div>
         </div>
 
         {/* Content */}
