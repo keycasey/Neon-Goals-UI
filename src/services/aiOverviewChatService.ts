@@ -33,6 +33,11 @@ export interface OverviewStreamChunk {
   goalPreview?: string;
   awaitingConfirmation?: boolean;
   commands?: ChatCommand[];
+  extraction?: {
+    groupId: string;
+    urls: string[];
+    streamUrl: string;
+  };
 }
 
 export const aiOverviewChatService = {

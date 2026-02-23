@@ -1432,6 +1432,7 @@ export const useAppStore = create<AppState>()(
                           goalPreview: (chunk as any).goalPreview,
                           awaitingConfirmation: (chunk as any).awaitingConfirmation,
                           proposalType: (chunk as any).proposalType,
+                          extraction: (chunk as any).extraction,
                         }),
                       }
                     : msg

@@ -6,6 +6,8 @@ import { useAppStore } from '@/store/useAppStore';
 import type { Message, ProposalType, GoalCategory } from '@/types/goals';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useExtraction, formatExtractionResultsForAI } from '@/hooks/useExtraction';
+import { ExtractionProgressUI } from '@/components/extraction/ExtractionProgress';
 
 interface ChatPanelProps {
   mode: 'creation' | 'goal';
@@ -119,6 +121,48 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     fetchCategoryChat,
     fetchGoalChat,
   } = useAppStore();
+
+  // Extraction hook for handling product URL extraction
+  const extraction = useExtraction();
+
+  // Track if we've already sent the follow-up for this extraction
+  const extractionFollowupSent = useRef<string | null>(null);
+
+  // Watch for extraction info in messages and start extraction
+  useEffect(() => {
+    const lastMessage = chat.messages[chat.messages.length - 1];
+    if (lastMessage?.role === 'assistant' && lastMessage.extraction && !extraction.groupId) {
+      const { groupId, urls } = lastMessage.extraction;
+      extraction.startExtraction(groupId, urls);
+    }
+  }, [chat.messages]);
+
+  // Send follow-up message when extraction completes
+  useEffect(() => {
+    if (
+      extraction.isComplete &&
+      extraction.groupId &&
+      extraction.results.length > 0 &&
+      extractionFollowupSent.current !== extraction.groupId
+    ) {
+      // Mark as sent to prevent duplicate messages
+      extractionFollowupSent.current = extraction.groupId;
+
+      // Format results and send to AI
+      const followUpMessage = formatExtractionResultsForAI(extraction.results);
+
+      // Send follow-up to the appropriate chat
+      setTimeout(() => {
+        if (mode === 'goal' && goalId) {
+          sendGoalMessage(goalId, followUpMessage);
+        } else if (activeCategory === 'all') {
+          sendOverviewMessage(followUpMessage);
+        } else if (activeCategory === 'items' || activeCategory === 'finances' || activeCategory === 'actions') {
+          sendCategoryMessage(activeCategory, followUpMessage);
+        }
+      }, 500); // Small delay to ensure UI updates first
+    }
+  }, [extraction.isComplete, extraction.groupId, extraction.results]);
 
   // Compute chat ID for latest proposal tracking
   const chatId = useMemo(() => {
@@ -383,6 +427,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 />
               ))}
             </AnimatePresence>
+
+            {/* Extraction Progress UI */}
+            {extraction.groupId && (
+              <ExtractionProgressUI
+                urls={extraction.urls}
+                progress={extraction.progress}
+                results={extraction.results}
+                isComplete={extraction.isComplete}
+                isCreatingGoals={extraction.isCreatingGoals}
+                onDismiss={extraction.dismiss}
+              />
+            )}
 
             {chat.isLoading && (
               <motion.div

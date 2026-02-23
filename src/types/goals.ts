@@ -133,6 +133,12 @@ export interface Settings {
 
 export type ProposalType = 'confirm_edit_cancel' | 'accept_decline';
 
+export interface ExtractionInfo {
+  groupId: string;
+  urls: string[];
+  streamUrl: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -142,6 +148,7 @@ export interface Message {
   awaitingConfirmation?: boolean;
   proposalType?: ProposalType;
   commands?: Array<{ type: string; data: any }>;
+  extraction?: ExtractionInfo;
 }
 
 export interface ChatState {
