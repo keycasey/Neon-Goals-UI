@@ -7,7 +7,7 @@ import type { FinanceGoal } from '@/types/goals';
 import { PlaidAccountCard } from '@/components/plaid/PlaidAccountCard';
 import { AccountSectionEmpty } from '@/components/plaid/AccountSectionEmpty';
 import { TransactionModal } from '@/components/plaid/TransactionModal';
-import { usePlaid } from '@/hooks/usePlaidLink';
+import { usePlaid, type PendingPlaidAccount } from '@/hooks/usePlaidLink';
 import { SyncToast, useSyncToast } from '@/components/ui/SyncToast';
 import type { PlaidAccount } from '@/services/plaidService';
 
@@ -66,7 +66,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
   const [showAccounts, setShowAccounts] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<PlaidAccount | null>(null);
   const syncToast = useSyncToast();
-  const { open: openPlaidLink, isLoading: isPlaidLoading, error: plaidError, accounts, syncAccount, removeAccount, isSyncing, fetchAccounts } = usePlaid();
+  const { open: openPlaidLink, isLoading: isPlaidLoading, error: plaidError, accounts, pendingAccounts, syncAccount, removeAccount, isSyncing, fetchAccounts } = usePlaid();
 
   const financeGoals = goals.filter(
     (goal): goal is FinanceGoal => goal.type === 'finance' && goal.status === 'active'
@@ -115,6 +115,13 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
   const creditAccounts = getCreditAccounts(accounts);
 
   const hasAnyAccounts = accounts.length > 0;
+
+  // Auto-expand accounts section when linking a new account
+  React.useEffect(() => {
+    if (isPlaidLoading && !showAccounts) {
+      setShowAccounts(true);
+    }
+  }, [isPlaidLoading]);
 
   return (
     <>
@@ -166,8 +173,8 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               <TrendingUp className="w-3 h-3" />
               Net Worth
             </p>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold neon-text-magenta">
-              {hasAnyAccounts ? `$${netWorth.toLocaleString()}` : '—'}
+            <p className={cn("text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold neon-text-magenta", isPlaidLoading && !hasAnyAccounts && "animate-pulse")}>
+              {isPlaidLoading && !hasAnyAccounts ? '...' : hasAnyAccounts ? `$${netWorth.toLocaleString()}` : '—'}
             </p>
           </div>
 
@@ -177,16 +184,16 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               <Target className="w-3 h-3" />
               Total Assets
             </p>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-success">
-              {hasAnyAccounts ? `$${totalAssets.toLocaleString()}` : '—'}
+            <p className={cn("text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-success", isPlaidLoading && !hasAnyAccounts && "animate-pulse")}>
+              {isPlaidLoading && !hasAnyAccounts ? '...' : hasAnyAccounts ? `$${totalAssets.toLocaleString()}` : '—'}
             </p>
           </div>
 
           {/* Total Debt */}
           <div className="p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/30">
             <p className="text-xs text-muted-foreground mb-1">Total Debt</p>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-destructive">
-              {totalDebt > 0 ? `-$${totalDebt.toLocaleString()}` : hasAnyAccounts ? '$0' : '—'}
+            <p className={cn("text-base sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-destructive", isPlaidLoading && !hasAnyAccounts && "animate-pulse")}>
+              {isPlaidLoading && !hasAnyAccounts ? '...' : totalDebt > 0 ? `-$${totalDebt.toLocaleString()}` : hasAnyAccounts ? '$0' : '—'}
             </p>
           </div>
 
@@ -255,6 +262,11 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               <AccountSection
                 title="Cash Accounts"
                 accounts={cashAccounts}
+                pendingAccounts={pendingAccounts.filter(a => {
+                  const t = a.type.toLowerCase();
+                  const s = a.subtype.toLowerCase();
+                  return t === 'depository' || ['checking', 'savings', 'money_market', 'cd'].includes(s);
+                })}
                 emptyType="cash"
                 onAddAccount={openPlaidLink}
                 onSync={syncAccount}
@@ -267,6 +279,11 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               <AccountSection
                 title="Investments & Retirement"
                 accounts={investmentAccounts}
+                pendingAccounts={pendingAccounts.filter(a => {
+                  const t = a.type.toLowerCase();
+                  const s = a.subtype.toLowerCase();
+                  return t === 'investment' || t === 'brokerage' || ['ira', '401k', 'roth', 'brokerage', 'hsa'].includes(s);
+                })}
                 emptyType="investments"
                 onAddAccount={openPlaidLink}
                 onSync={syncAccount}
@@ -279,6 +296,11 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               <AccountSection
                 title="Credit & Loans"
                 accounts={creditAccounts}
+                pendingAccounts={pendingAccounts.filter(a => {
+                  const t = a.type.toLowerCase();
+                  const s = a.subtype.toLowerCase();
+                  return t === 'credit' || t === 'loan' || ['credit_card', 'auto', 'mortgage', 'student', 'loan'].includes(s);
+                })}
                 emptyType="credit"
                 onAddAccount={openPlaidLink}
                 onSync={syncAccount}
@@ -317,6 +339,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
 interface AccountSectionProps {
   title: string;
   accounts: PlaidAccount[];
+  pendingAccounts: PendingPlaidAccount[];
   emptyType: 'cash' | 'investments' | 'credit';
   onAddAccount: () => void;
   onSync: (accountId: string) => void;
@@ -325,9 +348,35 @@ interface AccountSectionProps {
   isPlaidLoading: boolean;
 }
 
+// Skeleton card that mimics PlaidAccountCard shape, optionally showing real account info
+const AccountCardSkeleton: React.FC<{ pending?: PendingPlaidAccount }> = ({ pending }) => (
+  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30 animate-pulse">
+    <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center text-lg">
+      {pending ? '🔄' : ''}
+    </div>
+    <div className="flex-1 min-w-0">
+      {pending ? (
+        <>
+          <p className="text-sm font-medium text-muted-foreground truncate">
+            {pending.name}{pending.mask && <span> ••{pending.mask}</span>}
+          </p>
+          <p className="text-xs text-muted-foreground/60 truncate">{pending.institutionName}</p>
+        </>
+      ) : (
+        <div className="space-y-2">
+          <div className="h-3.5 bg-muted/50 rounded w-3/4" />
+          <div className="h-2.5 bg-muted/50 rounded w-1/2" />
+        </div>
+      )}
+    </div>
+    <div className="h-4 bg-muted/50 rounded w-16" />
+  </div>
+);
+
 const AccountSection: React.FC<AccountSectionProps> = ({
   title,
   accounts,
+  pendingAccounts,
   emptyType,
   onAddAccount,
   onSync,
@@ -335,13 +384,15 @@ const AccountSection: React.FC<AccountSectionProps> = ({
   isSyncing,
   isPlaidLoading,
 }) => {
+  const hasPending = pendingAccounts.length > 0;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-medium text-muted-foreground">
           {title}
         </h4>
-        {accounts.length > 0 && (
+        {(accounts.length > 0 || hasPending) && (
           <button
             onClick={onAddAccount}
             disabled={isPlaidLoading}
@@ -353,7 +404,7 @@ const AccountSection: React.FC<AccountSectionProps> = ({
         )}
       </div>
 
-      {accounts.length > 0 ? (
+      {accounts.length > 0 || hasPending ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {accounts.map(account => (
             <PlaidAccountCard
@@ -363,6 +414,9 @@ const AccountSection: React.FC<AccountSectionProps> = ({
               onClick={onClick}
               isSyncing={isSyncing === account.id}
             />
+          ))}
+          {pendingAccounts.map((pending, i) => (
+            <AccountCardSkeleton key={`pending-${i}`} pending={pending} />
           ))}
         </div>
       ) : (
