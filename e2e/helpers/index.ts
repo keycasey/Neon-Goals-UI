@@ -20,6 +20,10 @@ export async function waitForAppReady(page: Page) {
  * Useful for resetting state between tests.
  */
 export async function clearBrowserState(page: Page) {
+  // Navigate to a URL first to enable storage access
+  await page.goto('/login');
+
+  // Clear storage after page load
   await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();
