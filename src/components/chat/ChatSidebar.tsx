@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatPanel } from './ChatPanel';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
 
 interface ChatSidebarProps {
   mode: 'creation' | 'goal';
@@ -20,7 +20,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onToggleMinimize,
   className
 }) => {
-  const activeCategory = useAppStore((state) => state.activeCategory);
+  const activeCategory = useViewStore((state) => state.activeCategory);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [previousMode, setPreviousMode] = useState<'creation' | 'goal'>(mode);
   const [fabGlowPulse, setFabGlowPulse] = useState(false);

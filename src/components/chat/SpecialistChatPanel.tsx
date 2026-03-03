@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, StopCircle, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useChatStore } from '@/store/useChatStore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -56,7 +56,7 @@ export const SpecialistChatPanel: React.FC<SpecialistChatPanelProps> = ({
     cancelPendingCommands,
     confirmPendingCommands,
     isStreamActive,
-  } = useAppStore();
+  } = useChatStore();
 
   const chat = categoryChats[categoryId] || { messages: [], isLoading: false };
   const config = SPECIALIST_CONFIG[categoryId];
@@ -141,12 +141,12 @@ export const SpecialistChatPanel: React.FC<SpecialistChatPanelProps> = ({
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
                 className={cn(
-                  "flex",
+                  "flex w-full",
                   message.role === 'user' ? 'justify-end' : 'justify-start'
                 )}
               >
                 <div className={cn(
-                  "max-w-[80%] rounded-2xl px-4 py-2",
+                  "max-w-[80%] min-w-0 rounded-2xl px-4 py-2",
                   message.role === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-700/50 text-slate-100'
@@ -172,7 +172,7 @@ export const SpecialistChatPanel: React.FC<SpecialistChatPanelProps> = ({
                       {message.content}
                     </ReactMarkdown>
                   ) : (
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
                   )}
                 </div>
               </motion.div>

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
+import { useViewStore } from '@/store/useViewStore';
 import { ObjectiveList } from '../ObjectiveList';
 import { CompletionBurst } from '../CompletionBurst';
 import { getProgressBreakdown, isFullyComplete } from '@/lib/progressCalculator';
@@ -14,7 +15,8 @@ interface ActionGoalDetailProps {
 }
 
 export const ActionGoalDetail: React.FC<ActionGoalDetailProps> = ({ goal }) => {
-  const { toggleTask, addTask, drillIntoGoal } = useAppStore();
+  const { toggleTask, addTask } = useGoalsStore();
+  const { drillIntoGoal } = useViewStore();
   const [newTask, setNewTask] = useState('');
 
   // Calculate progress using Modular Assembly logic

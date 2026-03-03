@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, TrendingUp, Target, Wallet, ChevronDown, ChevronUp, Landmark, Plus, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
+import { useFinanceStore } from '@/store/useFinanceStore';
 import type { FinanceGoal } from '@/types/goals';
 import { PlaidAccountCard } from '@/components/plaid/PlaidAccountCard';
 import { AccountSectionEmpty } from '@/components/plaid/AccountSectionEmpty';
@@ -62,7 +63,8 @@ const isDebtType = (type: string, subtype?: string) => {
 };
 
 export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className }) => {
-  const { goals, syncFinanceGoal } = useAppStore();
+  const { goals } = useGoalsStore();
+  const { syncFinanceGoal } = useFinanceStore();
   const [showAccounts, setShowAccounts] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<PlaidAccount | null>(null);
   const syncToast = useSyncToast();
@@ -97,7 +99,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
         await syncAccount(account.id);
       }
       // Sync finance goals
-      financeGoals.forEach(goal => syncFinanceGoal(goal.id));
+      financeGoals.forEach(goal => syncFinanceGoal(goal.id, goals));
       syncToast.showSuccess(`${accounts.length} accounts synced`);
     } catch (error) {
       syncToast.showError('Could not sync accounts');

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, StopCircle, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useChatStore } from '@/store/useChatStore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -20,7 +20,7 @@ export const OverviewChatPage = () => {
     cancelPendingCommands,
     confirmPendingCommands,
     isStreamActive,
-  } = useAppStore();
+  } = useChatStore();
 
   const streamId = `overview-${overviewChat?.messages[overviewChat.messages.length - 1]?.id || 'latest'}`;
   const isStreaming = overviewChat?.isLoading || isStreamActive(streamId);

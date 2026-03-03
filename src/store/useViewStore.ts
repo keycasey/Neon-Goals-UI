@@ -56,6 +56,7 @@ interface ViewState {
   setSidebarOpen: (open: boolean) => void;
   setActiveCategory: (category: GoalCategory) => void;
   setChatMinimized: (minimized: boolean) => void;
+  toggleChatMinimized: () => void;
   triggerChatPulse: () => void;
 }
 
@@ -134,6 +135,8 @@ export const useViewStore = create<ViewState>()((set, get) => ({
   setActiveCategory: (activeCategory) => set({ activeCategory }),
 
   setChatMinimized: (isChatMinimized) => set({ isChatMinimized }),
+
+  toggleChatMinimized: () => set((state) => ({ isChatMinimized: !state.isChatMinimized })),
 
   triggerChatPulse: () => set((state) => ({ chatPulseTrigger: state.chatPulseTrigger + 1 })),
 }));

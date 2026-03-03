@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '@/store/useAppStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useFinanceStore } from '@/store/useFinanceStore';
 import { ItemGoalCard } from './ItemGoalCard';
 import { StackedItemGoalCard } from './StackedItemGoalCard';
 import { FinanceGoalCard } from './FinanceGoalCard';
@@ -34,14 +36,13 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className, sortBy = 'created
 
   const {
     goals,
-    activeCategory,
-    viewMode,
     deleteGoal,
     archiveGoal,
-    syncFinanceGoal,
     searchAndUpdateGoal,
     fetchGoals,
-  } = useAppStore();
+  } = useGoalsStore();
+  const { activeCategory, viewMode } = useViewStore();
+  const { syncFinanceGoal } = useFinanceStore();
 
   // Mark as animated after initial animation completes
   useEffect(() => {
@@ -195,7 +196,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className, sortBy = 'created
               onViewDetail={handleViewDetail}
               onDelete={deleteGoal}
               onArchive={archiveGoal}
-              onSync={syncFinanceGoal}
+              onSync={(id) => syncFinanceGoal(id, goals)}
               animationIndex={shouldAnimate ? index : -1}
             />
           ))}
@@ -246,7 +247,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className, sortBy = 'created
                 onViewDetail={handleViewDetail}
                 onDelete={deleteGoal}
                 onArchive={archiveGoal}
-                onSync={syncFinanceGoal}
+                onSync={(id) => syncFinanceGoal(id, goals)}
                 onSearch={searchAndUpdateGoal}
                 animationIndex={shouldAnimate ? idx : -1}
               />

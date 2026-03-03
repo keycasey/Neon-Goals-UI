@@ -5,7 +5,8 @@ import { GoalGrid } from '@/components/goals/GoalGrid';
 import { GoalDetailView } from '@/components/goals/GoalDetailView';
 import { FinancialSummary } from '@/components/goals/FinancialSummary';
 import { GoalSortBar } from '@/components/goals/GoalSortBar';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
 import { cn } from '@/lib/utils';
 import type { Goal } from '@/types/goals';
 
@@ -26,15 +27,8 @@ const Index = () => {
   const [sortBy, setSortBy] = useState('createdAt');
   const hasClearedGoal = React.useRef(false);
 
-  const {
-    sidebarOpen,
-    setSidebarOpen,
-    currentGoalId,
-    closeGoal,
-    goals,
-    activeCategory,
-    isChatMinimized,
-  } = useAppStore();
+  const { sidebarOpen, setSidebarOpen, currentGoalId, closeGoal, activeCategory, isChatMinimized } = useViewStore();
+  const { goals } = useGoalsStore();
 
   // Track desktop breakpoint for responsive sidebar margin
   useEffect(() => {

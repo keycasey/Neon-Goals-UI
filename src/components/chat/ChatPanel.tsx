@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Sparkles, Minimize2, Maximize2, Check, XCircle, CheckCircle, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useChatStore } from '@/store/useChatStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
+import { useViewStore } from '@/store/useViewStore';
 import type { Message, ProposalType, GoalCategory } from '@/types/goals';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -109,18 +111,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     startGoalCreation,
     stopGoalCreation,
     isCreatingGoal,
-    goals,
     cancelPendingCommands,
     confirmPendingCommands,
     pendingCommands,
     addAssistantMessage,
     markProposalHandled,
     isLatestProposal,
-    chatPulseTrigger,
     fetchOverviewChat,
     fetchCategoryChat,
     fetchGoalChat,
-  } = useAppStore();
+  } = useChatStore();
+  const goals = useGoalsStore((state) => state.goals);
+  const chatPulseTrigger = useViewStore((state) => state.chatPulseTrigger);
 
   // Compute chat ID for latest proposal tracking
   const chatId = useMemo(() => {
@@ -550,7 +552,7 @@ const MessageBubble = React.forwardRef<
   const hasGoalPreview = message.goalPreview && message.awaitingConfirmation;
   const showProposalButtons = message.awaitingConfirmation;
   // Get isProposalHandled from store
-  const { isProposalHandled } = useAppStore();
+  const { isProposalHandled } = useChatStore();
   const isHandled = messageId ? isProposalHandled(messageId) : false;
   // Buttons are disabled if proposal was handled OR if it's not the latest proposal
   const buttonsDisabled = isHandled || !isLatestProposal;
@@ -564,9 +566,9 @@ const MessageBubble = React.forwardRef<
         animate={{ opacity: 1, y: 0 }}
         exit={isExiting ? { opacity: 0, y: 30 } : { opacity: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex flex-col items-end"
+        className="flex flex-col w-full items-end"
       >
-        <div className="max-w-[85%] space-y-3">
+        <div className="max-w-[85%] min-w-0 space-y-3 break-words [overflow-wrap:anywhere]">
           {/* Main message */}
           <div className="px-4 py-3 rounded-2xl bg-muted/50 text-white rounded-tl-sm border border-border/30 prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white prose-pre:text-white prose-pre-code:text-white max-w-none [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-white/10 [&_pre]:px-3 [&_pre]:py-2 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre_code]:whitespace-pre-wrap [&_pre_code]:break-words">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
@@ -698,22 +700,22 @@ const MessageBubble = React.forwardRef<
         animate={{ opacity: 1, y: 0 }}
         exit={isExiting ? { opacity: 0, y: 30, transition: { duration: 0.3 } } : { opacity: 0 }}
         className={cn(
-          "flex",
+          "flex w-full",
           isUser ? "justify-end" : "justify-start"
         )}
       >
         <div
           className={cn(
-            "max-w-[85%] px-4 py-3 rounded-2xl",
+            "max-w-[85%] min-w-0 px-4 py-3 rounded-2xl",
             isUser
               ? "bg-gradient-neon text-primary-foreground rounded-tr-sm"
               : "bg-muted/50 text-foreground rounded-tl-sm border border-border/30"
           )}
         >
           {isUser ? (
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            <p className="text-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">{message.content}</p>
           ) : (
-            <div className="prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white max-w-none [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre_code]:whitespace-pre-wrap [&_pre_code]:break-words">
+            <div className="prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white max-w-none break-words [overflow-wrap:anywhere] [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre_code]:whitespace-pre-wrap [&_pre_code]:break-words">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
             </div>
           )}

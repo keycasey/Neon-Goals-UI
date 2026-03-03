@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Settings as SettingsIcon, User, Palette, MessageSquare, Bell, Shield, Database, ArrowLeft, LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAppStore } from '@/store/useAppStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, settings, updateSettings } = useAppStore();
+  const { user, settings, updateSettings } = useAuthStore();
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
 
   // ESC key to go back

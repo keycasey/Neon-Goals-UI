@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, Layers, Scan, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
 import { CandidateScanner } from '../scanner/CandidateScanner';
 import { ScannerPlaceholder } from '../ScannerPlaceholder';
 import { ScrapeStatusCard } from '../ScrapeStatusCard';
@@ -15,11 +16,12 @@ interface ItemGoalDetailProps {
 }
 
 export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
-  const { isChatMinimized, updateGoal, searchAndUpdateGoal, fetchGoals } = useAppStore();
+  const { isChatMinimized } = useViewStore();
+  const { updateGoal, searchAndUpdateGoal, fetchGoals } = useGoalsStore();
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   // Subscribe directly to this specific goal from the store for reactivity
-  const latestGoal = useAppStore(state => state.goals.find(g => g.id === goal.id) as ItemGoal) || goal;
+  const latestGoal = useGoalsStore(state => state.goals.find(g => g.id === goal.id) as ItemGoal) || goal;
 
   // Initialize selectedCandidate from the goal's selectedCandidateId (if set), but don't auto-select first candidate
   const [selectedCandidate, setSelectedCandidate] = useState<ProductCandidate | null>(() => {
@@ -468,7 +470,7 @@ export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
               // Use setTimeout to ensure state has updated
               setTimeout(() => {
                 // Get fresh goals from store
-                const store = useAppStore.getState();
+                const store = useGoalsStore.getState();
                 const refreshedGoal = store.goals.find(g => g.id === latestGoal.id);
                 if (!refreshedGoal) {
                   console.log('[ItemGoalDetail] Could not find refreshed goal');
@@ -506,7 +508,7 @@ export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
               subgoals={goal.subgoals}
               onSubgoalClick={(subgoalId) => {
                 // Drill into the subgoal with slide animation
-                useAppStore.getState().drillIntoGoal(subgoalId);
+                useViewStore.getState().drillIntoGoal(subgoalId);
               }}
             />
           </motion.div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Layers, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
 import { itemVariants } from './animations';
 import type { Goal } from '@/types/goals';
 
@@ -11,7 +11,7 @@ interface SubgoalsSectionProps {
 }
 
 export const SubgoalsSection: React.FC<SubgoalsSectionProps> = ({ goal }) => {
-  const { drillIntoGoal } = useAppStore();
+  const { drillIntoGoal } = useViewStore();
 
   if (!goal.subgoals || goal.subgoals.length === 0) {
     return null;

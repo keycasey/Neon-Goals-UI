@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Goal, ActionGoal } from '@/types/goals';
 import { goalsService } from '@/services/goalsService';
+import { useAuthStore } from './useAuthStore';
 
 // Read initial state from useAppStore's localStorage
 // This keeps the slice in sync with the main store during the migration
@@ -46,6 +47,12 @@ interface GoalsState {
   // Task actions (for ActionGoals)
   toggleTask: (goalId: string, taskId: string) => void;
   addTask: (goalId: string, title: string) => void;
+
+  // Item search/update
+  searchAndUpdateGoal: (goalId: string, query?: string) => Promise<void>;
+
+  // Progress update
+  updateGoalProgress: (goalId: string, data: any) => Promise<void>;
 }
 
 export const useGoalsStore = create<GoalsState>()((set, get) => ({
@@ -54,6 +61,10 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
 
   // Goal CRUD actions
   fetchGoals: async () => {
+    // Skip API call in demo mode
+    if (useAuthStore.getState().isDemoMode) {
+      return;
+    }
     try {
       set({ isLoading: true, error: null });
       const goals = await goalsService.getAll();
@@ -205,4 +216,37 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
       return goal;
     }),
   })),
+
+  searchAndUpdateGoal: async (goalId, _query) => {
+    try {
+      set((state) => ({
+        goals: state.goals.map((goal) =>
+          goal.id === goalId && goal.type === 'item'
+            ? { ...goal, statusBadge: 'pending_search' }
+            : goal
+        ),
+        goalsVersion: get().goalsVersion + 1,
+      }));
+      await goalsService.refreshCandidates(goalId);
+    } catch (error) {
+      console.error('Failed to refresh candidates:', error);
+      set((state) => ({
+        goals: state.goals.map((goal) =>
+          goal.id === goalId && (goal as any).statusBadge === 'pending_search'
+            ? { ...goal, statusBadge: 'in_stock' }
+            : goal
+        ),
+        goalsVersion: get().goalsVersion + 1,
+      }));
+    }
+  },
+
+  updateGoalProgress: async (_goalId, _data) => {
+    try {
+      await get().fetchGoals();
+    } catch (error) {
+      console.error('Failed to update progress:', error);
+      throw error;
+    }
+  },
 }));

@@ -2,7 +2,8 @@ import React from 'react';
 import { Menu, LayoutGrid, List, Bell, Search, LogIn } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface HeaderProps {
   className?: string;
@@ -11,13 +12,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ className, accountDropdownOpen, setAccountDropdownOpen }) => {
-  const {
-    toggleSidebar,
-    sidebarOpen,
-    viewMode,
-    setViewMode,
-    user
-  } = useAppStore();
+  const { toggleSidebar, sidebarOpen, viewMode, setViewMode } = useViewStore();
+  const { user } = useAuthStore();
 
   return (
     <header

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Settings, X, User, Mail, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface AccountDropdownProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface AccountDropdownProps {
 }
 
 export const AccountDropdown: React.FC<AccountDropdownProps> = ({ isOpen, onClose }) => {
-  const { user, logout } = useAppStore();
+  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 

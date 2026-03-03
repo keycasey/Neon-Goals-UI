@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpDown, LayoutGrid, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
 import type { GoalCategory, ViewMode } from '@/types/goals';
 
 export type SortOption = {
@@ -44,7 +44,7 @@ export const GoalSortBar: React.FC<GoalSortBarProps> = ({
   onSortChange,
   className,
 }) => {
-  const { activeCategory, viewMode, setViewMode } = useAppStore();
+  const { activeCategory, viewMode, setViewMode } = useViewStore();
   const options = sortOptionsByCategory[activeCategory] || sortOptionsByCategory.all;
 
   return (

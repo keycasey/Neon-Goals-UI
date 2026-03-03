@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
 import { containerVariants, itemVariants } from './animations';
 import type { GroupGoal, ItemGoal, FinanceGoal, ActionGoal } from '@/types/goals';
 
@@ -69,7 +69,7 @@ const GroupPreview = ({ group }: { group: GroupGoal }) => (
 );
 
 export const GroupGoalDetail: React.FC<GroupGoalDetailProps> = ({ goal }) => {
-  const { drillIntoGoal } = useAppStore();
+  const { drillIntoGoal } = useViewStore();
 
   // Navigate to subgoal detail with drill-down animation
   const handleSubgoalClick = (subgoalId: string) => {

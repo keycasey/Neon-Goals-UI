@@ -8,6 +8,8 @@ import { aiGoalChatService } from '@/services/aiGoalChatService';
 import { aiSpecialistChatService } from '@/services/aiSpecialistChatService';
 import { mockOverviewChatService, mockGoalChatService } from '@/services/mockChatService';
 import { goalsService } from '@/services/goalsService';
+import { useGoalsStore } from './useGoalsStore';
+import { useAuthStore } from './useAuthStore';
 
 // Read initial state from useAppStore's localStorage
 // This keeps the slice in sync with the main store during the migration
@@ -68,45 +70,14 @@ const getInitialState = () => {
   };
 };
 
-// Helper to get isDemoMode from useAppStore's localStorage
-const getIsDemoMode = (): boolean => {
-  try {
-    const stored = localStorage.getItem('goals-af-storage');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed?.state?.isDemoMode ?? false;
-    }
-  } catch (e) {
-    console.error('Failed to parse demo mode from storage:', e);
-  }
-  return false;
-};
+// Helper to get isDemoMode from useAuthStore
+const getIsDemoMode = (): boolean => useAuthStore.getState().isDemoMode;
 
-// Helper to get goals from useAppStore's localStorage (needed for goal chat)
-const getGoals = (): Goal[] => {
-  try {
-    const stored = localStorage.getItem('goals-af-storage');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed?.state?.goals ?? [];
-    }
-  } catch (e) {
-    console.error('Failed to parse goals from storage:', e);
-  }
-  return [];
-};
+// Helper to get goals from useGoalsStore
+const getGoals = (): Goal[] => useGoalsStore.getState().goals;
 
-// Helper to access useAppStore's fetchGoals and createSubgoal
-// These will be called via the main store during the migration period
-let appStoreActions: {
-  fetchGoals: () => Promise<void>;
-  createSubgoal: (data: any, parentGoalId: string) => Promise<void>;
-  addGoal: (goal: Goal) => void;
-} | null = null;
-
-export const setAppStoreActions = (actions: typeof appStoreActions) => {
-  appStoreActions = actions;
-};
+// Access goals store actions directly
+const goalsStoreActions = () => useGoalsStore.getState();
 
 interface ChatStoreState {
   // Chat state
@@ -245,10 +216,8 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
           }));
 
           // Add goal via app store action
-          if (appStoreActions) {
-            appStoreActions.addGoal(response.goal);
-            await appStoreActions.fetchGoals();
-          }
+          goalsStoreActions().addGoal(response.goal);
+          await goalsStoreActions().fetchGoals();
         }
       } else {
         // Regular chat mode with streaming
@@ -302,11 +271,9 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
                     status: 'active',
                     createdAt: new Date(),
                   };
-                  if (appStoreActions) {
-                    appStoreActions.addGoal(newGoal);
-                  }
-                } else if (cmd.type === 'CREATE_SUBGOAL' && appStoreActions) {
-                  await appStoreActions.createSubgoal(cmd.data, cmd.data.parentGoalId || '');
+                  goalsStoreActions().addGoal(newGoal);
+                } else if (cmd.type === 'CREATE_SUBGOAL') {
+                  await goalsStoreActions().createSubgoal(cmd.data, cmd.data.parentGoalId || '');
                 }
               }
             }
@@ -361,13 +328,13 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
           // Execute commands from the response
           const commands = finalChunk.commands || [];
-          if (commands.length > 0 && appStoreActions) {
+          if (commands.length > 0) {
             for (const cmd of commands) {
               if (cmd.type === 'CREATE_SUBGOAL') {
-                await appStoreActions.createSubgoal(cmd.data, cmd.data.parentGoalId || '');
+                await goalsStoreActions().createSubgoal(cmd.data, cmd.data.parentGoalId || '');
               }
             }
-            await appStoreActions.fetchGoals();
+            await goalsStoreActions().fetchGoals();
           }
         } catch (streamError) {
           console.error('Streaming failed, falling back to non-streaming chat:', streamError);
@@ -613,7 +580,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
           activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
         }));
 
-        if (response.commands?.length > 0 && appStoreActions) {
+        if (response.commands?.length > 0) {
           for (const cmd of response.commands) {
             if (cmd.type === 'CREATE_GOAL') {
               const newGoal = {
@@ -622,9 +589,9 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
                 status: 'active',
                 createdAt: new Date(),
               };
-              appStoreActions.addGoal(newGoal);
+              goalsStoreActions().addGoal(newGoal);
             } else if (cmd.type === 'CREATE_SUBGOAL') {
-              await appStoreActions.createSubgoal(cmd.data, cmd.data.parentGoalId || '');
+              await goalsStoreActions().createSubgoal(cmd.data, cmd.data.parentGoalId || '');
             }
           }
         }
@@ -683,13 +650,13 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
       // Execute non-awaiting commands
       const commands = finalChunk.commands || [];
-      if (commands.length > 0 && appStoreActions) {
+      if (commands.length > 0) {
         for (const cmd of commands) {
           if (cmd.type === 'CREATE_SUBGOAL') {
-            await appStoreActions.createSubgoal(cmd.data, cmd.data.parentGoalId || '');
+            await goalsStoreActions().createSubgoal(cmd.data, cmd.data.parentGoalId || '');
           }
         }
-        await appStoreActions.fetchGoals();
+        await goalsStoreActions().fetchGoals();
       }
     } catch (error) {
       console.error('Overview chat error:', error);
@@ -936,9 +903,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
         for (const cmd of commands) {
           await get().executeChatCommand(cmd);
         }
-        if (appStoreActions) {
-          await appStoreActions.fetchGoals();
-        }
+        await goalsStoreActions().fetchGoals();
       }
     } catch (error) {
       console.error(`${categoryId} chat error:`, error);
@@ -1097,9 +1062,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
       set({ pendingCommands: null });
 
       // Refresh goals to show changes
-      if (appStoreActions) {
-        await appStoreActions.fetchGoals();
-      }
+      await goalsStoreActions().fetchGoals();
 
       // Add success message to the appropriate chat
       const successMessage: Message = {
@@ -1391,10 +1354,8 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
           },
         });
 
-        if (appStoreActions) {
-          appStoreActions.addGoal(transformedGoal);
-          await appStoreActions.fetchGoals();
-        }
+        goalsStoreActions().addGoal(transformedGoal);
+        await goalsStoreActions().fetchGoals();
       }
     } catch (error) {
       console.error('Failed to confirm goal:', error);
@@ -1492,7 +1453,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
     switch (type) {
       case 'ADD_TASK':
-        // This requires access to goals store - delegate to appStoreActions
+        // TODO: implement via goalsStoreActions()
         console.log('ADD_TASK command - requires goals store integration');
         break;
       case 'TOGGLE_TASK':

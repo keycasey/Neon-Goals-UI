@@ -4,7 +4,7 @@ import { ExternalLink, Trash2, Archive, TrendingDown, Package, Clock, ChevronDow
 import { cn } from '@/lib/utils';
 import type { ItemGoal } from '@/types/goals';
 import { ScannerPlaceholder } from './ScannerPlaceholder';
-import { useAppStore } from '@/store/useAppStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
 
 interface StackedItemGoalCardProps {
   goals: ItemGoal[];
@@ -39,7 +39,7 @@ export const StackedItemGoalCard = React.forwardRef<
   onArchive,
   animationIndex,
 }, ref) => {
-  const { goals: storeGoals } = useAppStore();
+  const { goals: storeGoals } = useGoalsStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const shouldAnimate = animationIndex >= 0;
 

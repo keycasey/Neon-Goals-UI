@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
 import { SIDEBAR_HANDLE_WIDTH } from '@/components/layout/Sidebar';
 import { GoalBreadcrumb } from './GoalBreadcrumb';
 import { GroupGoalDetail, ActionGoalDetail, FinanceGoalDetail, ItemGoalDetail, containerVariants, springConfig } from './detail';
@@ -31,8 +32,8 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
     navigationDirection,
     navigateToGoal,
     navigateBack,
-    goals,
-  } = useAppStore();
+  } = useViewStore();
+  const { goals } = useGoalsStore();
 
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);

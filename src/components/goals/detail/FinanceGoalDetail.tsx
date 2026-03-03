@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
 import { CompletionBurst } from '../CompletionBurst';
 import { NestedProgressBar } from '../NestedProgressBar';
 import { containerVariants, itemVariants, springConfig } from './animations';
@@ -13,7 +13,7 @@ interface FinanceGoalDetailProps {
 }
 
 export const FinanceGoalDetail: React.FC<FinanceGoalDetailProps> = ({ goal }) => {
-  const { drillIntoGoal } = useAppStore();
+  const { drillIntoGoal } = useViewStore();
   const progress = Math.min((goal.currentBalance / goal.targetBalance) * 100, 100);
   const remaining = goal.targetBalance - goal.currentBalance;
   const isComplete = progress >= 100;

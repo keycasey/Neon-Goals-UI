@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePlaidLink as usePlaidLinkLib, PlaidLinkOptions, PlaidLinkOnSuccess, PlaidLinkOnExit } from 'react-plaid-link';
 import { plaidService, type PlaidAccount } from '@/services/plaidService';
-import { useAppStore } from '@/store/useAppStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useFinanceStore } from '@/store/useFinanceStore';
 
 // Lightweight account info from Plaid Link metadata (available before token exchange)
 export interface PendingPlaidAccount {
@@ -113,7 +114,8 @@ const DEMO_EXTRA_ACCOUNTS: PlaidAccount[] = [
 ];
 
 export const usePlaid = (): UsePlaidLinkReturn => {
-  const { isDemoMode, plaidAccounts, fetchPlaidAccounts, addPlaidAccounts, removePlaidAccount, syncPlaidAccount } = useAppStore();
+  const { isDemoMode } = useAuthStore();
+  const { plaidAccounts, fetchPlaidAccounts, addPlaidAccounts, removePlaidAccount, syncPlaidAccount } = useFinanceStore();
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -229,7 +231,7 @@ export const usePlaid = (): UsePlaidLinkReturn => {
     // In demo mode, simulate Plaid linking with a delay
     if (isDemoMode) {
       // Read current accounts directly from store to avoid stale closure
-      const currentAccounts = useAppStore.getState().plaidAccounts;
+      const currentAccounts = useFinanceStore.getState().plaidAccounts;
       const existingIds = new Set(currentAccounts.map(a => a.id));
       const allDemo = [...DEMO_PLAID_ACCOUNTS, ...DEMO_EXTRA_ACCOUNTS];
       const remaining = allDemo.filter(a => !existingIds.has(a.id));

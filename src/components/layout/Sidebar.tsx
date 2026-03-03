@@ -14,7 +14,9 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { GoalCategory } from '@/types/goals';
 
 // SIDEBAR WIDTH - exported for use in other components
@@ -37,20 +39,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
   const navigate = useNavigate();
   const location = useLocation();
 
-  const {
-    sidebarOpen,
-    toggleSidebar,
-    setSidebarOpen,
-    activeCategory,
-    setActiveCategory,
-    goals,
-    user,
-    viewMode,
-    setViewMode,
-    selectGoal,
-    currentGoalId,
-    closeGoal,
-  } = useAppStore();
+  const { sidebarOpen, toggleSidebar, setSidebarOpen, activeCategory, setActiveCategory, viewMode, setViewMode, selectGoal, currentGoalId, closeGoal } = useViewStore();
+  const { goals } = useGoalsStore();
+  const { user } = useAuthStore();
 
   // Determine if we're in goal view mode
   const isInGoalView = currentGoalId !== null;

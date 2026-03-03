@@ -28,6 +28,7 @@ interface FinanceState {
   plaidAccounts: PlaidAccount[];
   plaidAccountsVersion: number;
   fetchPlaidAccounts: () => Promise<void>;
+  addPlaidAccounts: (accounts: PlaidAccount[]) => void;
   syncPlaidAccount: (accountId: string) => Promise<void>;
   removePlaidAccount: (accountId: string) => Promise<void>;
   syncFinanceGoal: (goalId: string, goals: any[]) => void;
@@ -60,6 +61,15 @@ export const useFinanceStore = create<FinanceState>()((set, get) => ({
       set({ plaidAccounts: [] });
     }
   },
+
+  addPlaidAccounts: (accounts) => set((state) => {
+    const existingIds = new Set(state.plaidAccounts.map(a => a.plaidAccountId));
+    const newAccounts = accounts.filter(a => !existingIds.has(a.plaidAccountId));
+    return {
+      plaidAccounts: [...state.plaidAccounts, ...newAccounts],
+      plaidAccountsVersion: state.plaidAccountsVersion + 1,
+    };
+  }),
 
   syncPlaidAccount: async (accountId) => {
     try {

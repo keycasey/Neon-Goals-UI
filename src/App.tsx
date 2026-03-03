@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useParams, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useAppStore } from "@/store/useAppStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useViewStore } from "@/store/useViewStore";
+import { useGoalsStore } from "@/store/useGoalsStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -25,8 +27,8 @@ const queryClient = new QueryClient();
 
 // Protected route wrapper - redirects to login if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const user = useAppStore((state) => state.user);
-  const isDemoMode = useAppStore((state) => state.isDemoMode);
+  const user = useAuthStore((state) => state.user);
+  const isDemoMode = useAuthStore((state) => state.isDemoMode);
   const location = useLocation();
 
   // Allow access if user is logged in OR if demo mode is enabled
@@ -44,9 +46,9 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const isGoalRoute = location.pathname.startsWith('/goals/');
   const isSettingsRoute = location.pathname === '/settings';
-  const isChatMinimized = useAppStore((state) => state.isChatMinimized);
-  const toggleChatMinimized = useAppStore((state) => state.toggleChatMinimized);
-  const closeGoal = useAppStore((state) => state.closeGoal);
+  const isChatMinimized = useViewStore((state) => state.isChatMinimized);
+  const toggleChatMinimized = useViewStore((state) => state.toggleChatMinimized);
+  const closeGoal = useViewStore((state) => state.closeGoal);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
 
   // Don't render layout for auth pages
@@ -100,8 +102,9 @@ const MainLayout = () => {
 
 // Inner app component that initializes the store
 const AppContent = () => {
-  const initializeApp = useAppStore((state) => state.initializeApp);
-  const logout = useAppStore((state) => state.logout);
+  const initializeApp = useAuthStore((state) => state.initializeApp);
+  const logout = useAuthStore((state) => state.logout);
+  const fetchGoals = useGoalsStore((state) => state.fetchGoals);
   const navigate = useNavigate();
   const location = useLocation();
   useKeyboardShortcuts(); // Initialize keyboard shortcuts
@@ -122,8 +125,12 @@ const AppContent = () => {
   }, [logout, navigate, location]);
 
   useEffect(() => {
-    initializeApp();
-  }, [initializeApp]);
+    initializeApp().then(() => {
+      if (useAuthStore.getState().user) {
+        fetchGoals();
+      }
+    });
+  }, [initializeApp, fetchGoals]);
 
   // Re-validate auth when app returns to foreground (e.g. mobile tab switch)
   useEffect(() => {
@@ -156,10 +163,10 @@ const AppContent = () => {
 const GoalDetailPageWrapper = () => {
   const { goalId } = useParams<{ goalId: string }>();
   const navigate = useNavigate();
-  const goals = useAppStore((state) => state.goals);
-  const currentGoalId = useAppStore((state) => state.currentGoalId);
-  const selectGoal = useAppStore((state) => state.selectGoal);
-  const closeGoal = useAppStore((state) => state.closeGoal);
+  const goals = useGoalsStore((state) => state.goals);
+  const currentGoalId = useViewStore((state) => state.currentGoalId);
+  const selectGoal = useViewStore((state) => state.selectGoal);
+  const closeGoal = useViewStore((state) => state.closeGoal);
 
   // Debug: Track component lifecycle
   useEffect(() => {

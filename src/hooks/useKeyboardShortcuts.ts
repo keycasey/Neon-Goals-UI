@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface KeyboardShortcut {
   key: string;
@@ -17,9 +18,8 @@ export const useKeyboardShortcuts = () => {
     sidebarOpen,
     setSidebarOpen,
     setActiveCategory,
-    user,
-    logout,
-  } = useAppStore();
+  } = useViewStore();
+  const { user, logout } = useAuthStore();
 
   const shortcuts: KeyboardShortcut[] = [
     {

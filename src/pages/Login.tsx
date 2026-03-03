@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Github, Chrome as ChromeIcon, Mail, Copy, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '@/store/useAppStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
 import { initiateGitHubLogin } from '@/services/githubAuth';
 import { authService } from '@/services/authService';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,8 @@ import { RegisterForm } from '@/components/auth/RegisterForm';
 type AuthMode = 'oauth' | 'login' | 'register' | 'verify';
 
 const Login = () => {
-  const { user, setUser, addGoal, setDemoMode, fetchGoals } = useAppStore();
+  const { user, setUser, setDemoMode } = useAuthStore();
+  const { addGoal, fetchGoals } = useGoalsStore();
   const navigate = useNavigate();
   const [authMode, setAuthMode] = useState<AuthMode>('oauth');
   const [verifyEmail, setVerifyEmail] = useState('');

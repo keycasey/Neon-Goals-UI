@@ -40,13 +40,39 @@ export async function waitForNetworkIdle(page: Page, timeout = 5000) {
 }
 
 /**
- * Login helper for authenticated tests.
- * TODO: Implement based on your auth flow.
+ * Login helper for authenticated tests using email/password.
  */
-export async function login(page: Page, _email: string, _password: string) {
-  // Placeholder for login implementation
-  // This should be customized based on your authentication flow
-  throw new Error('Login helper not yet implemented');
+export async function login(page: Page, email: string, password: string) {
+  await clearBrowserState(page);
+  await page.goto('/login');
+  await waitForAppReady(page);
+
+  // Click "sign in with email" link to switch to email mode
+  await page.click('text=sign in with email');
+
+  // Wait for email form to appear
+  await page.waitForSelector('input[type="email"]', { state: 'visible' });
+
+  // Fill credentials
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', password);
+
+  // Submit
+  await page.click('button[type="submit"]');
+
+  // Wait for redirect to home
+  await page.waitForURL('/', { timeout: 15000 });
+}
+
+/**
+ * Login with demo mode (no backend required).
+ */
+export async function loginDemo(page: Page) {
+  await clearBrowserState(page);
+  await page.goto('/login');
+  await waitForAppReady(page);
+  await page.click('text=Start with Demo Mode');
+  await page.waitForURL('/', { timeout: 10000 });
 }
 
 /**

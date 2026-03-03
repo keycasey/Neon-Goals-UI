@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Pencil, Loader2, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { goalsService } from '@/services/goalsService';
-import { useAppStore } from '@/store/useAppStore';
+import { useViewStore } from '@/store/useViewStore';
+import { useChatStore } from '@/store/useChatStore';
 import type { ScrapeJob, ScrapeJobStatus } from '@/types/goals';
 import type { ItemGoal } from '@/types/goals';
 
@@ -40,7 +41,8 @@ const statusConfig: Record<ScrapeJobStatus, { icon: React.ElementType; color: st
 const POLL_INTERVAL = 3000; // Poll every 3 seconds
 
 export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFiltersUpdate, onRefresh, onScrapeComplete }) => {
-  const { isChatMinimized, toggleChatMinimized, sendGoalMessage, triggerChatPulse } = useAppStore();
+  const { isChatMinimized, toggleChatMinimized, triggerChatPulse } = useViewStore();
+  const { sendGoalMessage } = useChatStore();
 
   // Debug logging
   console.log('[ScrapeStatusCard] Render:', {

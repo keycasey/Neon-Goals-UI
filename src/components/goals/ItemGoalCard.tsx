@@ -4,7 +4,7 @@ import { ExternalLink, Trash2, Archive, TrendingDown, Package, Search, RefreshCw
 import { cn } from '@/lib/utils';
 import type { ItemGoal } from '@/types/goals';
 import { ScannerPlaceholder } from './ScannerPlaceholder';
-import { useAppStore } from '@/store/useAppStore';
+import { useGoalsStore } from '@/store/useGoalsStore';
 
 interface ItemGoalCardProps {
   goal: ItemGoal;
@@ -32,7 +32,7 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
   onSearch,
   animationIndex,
 }) => {
-  const { goals } = useAppStore();
+  const { goals } = useGoalsStore();
   const [isSearching, setIsSearching] = useState(false);
 
   const latestGoal = useMemo(() => {
