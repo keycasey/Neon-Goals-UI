@@ -6,43 +6,43 @@
 
 ### High Priority
 
-- [ ] Implement redirect command parser
-  - [ ] Parse `REDIRECT_TO_CATEGORY`, `REDIRECT_TO_GOAL`, `REDIRECT_TO_OVERVIEW`
-  - [ ] Extract target ID and redirect message
-  - [ ] Handle invalid command format gracefully
+- [x] Implement redirect command parser
+  - [x] Parse `REDIRECT_TO_CATEGORY`, `REDIRECT_TO_GOAL`, `REDIRECT_TO_OVERVIEW`
+  - [x] Extract target ID and redirect message
+  - [x] Handle invalid command format gracefully
 
-- [ ] Create Redirect Card component (rendered INLINE in chat message)
-  - [ ] **Design pattern:** Same as current extract cards and proposal cards
-  - [ ] Display redirect message ("I'll help you compare those trucks...")
-  - [ ] Show "Go to [Target]" button (primary action)
-  - [ ] Show "Stay here" button (secondary action)
-  - [ ] Style with agent personality (consistent with extract/proposal cards)
-  - [ ] Use card background, border radius, shadow matching current UI
-  - [ ] Agent avatar or icon in card header
+- [x] Create Redirect Card component (rendered INLINE in chat message)
+  - [x] **Design pattern:** Same as current extract cards and proposal cards
+  - [x] Display redirect message ("I'll help you compare those trucks...")
+  - [x] Show "Go to [Target]" button (primary action)
+  - [x] Show "Stay here" button (secondary action)
+  - [x] Style with agent personality (consistent with extract/proposal cards)
+  - [x] Use card background, border radius, shadow matching current UI
+  - [x] Agent avatar or icon in card header
 
   **Visual Example (inline in chat):**
   ```
   [Agent Avatar] I'll help you compare those trucks side by side.
   ┌─────────────────────────────────────┐
-  │ That comparison would work best in</arg_key> │
+  │ That comparison would work best in  │
   │ Items specialist view.              │
   │                                  │
   │ [Go to Items specialist] [Stay here] │
   └─────────────────────────────────────┘
   ```
 
-- [ ] Update Chat View to handle redirects
-  - [ ] Detect redirect commands in agent messages
-  - [ ] **Render Redirect Card inline within chat message flow** (not modal/overlay)
-  - [ ] Navigate to new chat on "Go" click
-  - [ ] Dismiss redirect card on "Stay" click
+- [x] Update Chat View to handle redirects
+  - [x] Detect redirect commands in agent messages
+  - [x] **Render Redirect Card inline within chat message flow** (not modal/overlay)
+  - [x] Navigate to new chat on "Go" click
+  - [x] Dismiss redirect card on "Stay" click
 
-- [ ] Implement toast notification system (for post-navigation confirmation)
-  - [ ] Show toast AFTER successful navigation: "Switched to Items specialist"
-  - [ ] Include "Go back" link in toast
-  - [ ] Add "Dismiss" action
-  - [ ] Auto-dismiss after 5 seconds
-  - [ ] **Note:** Toast is separate from Redirect Card (card is inline, toast is post-nav)
+- [x] Implement toast notification system (for post-navigation confirmation)
+  - [x] Show toast AFTER successful navigation: "Switched to Items specialist"
+  - [x] Include "Go back" link in toast
+  - [x] Add "Dismiss" action
+  - [x] Auto-dismiss after 5 seconds
+  - [x] **Note:** Toast is separate from Redirect Card (card is inline, toast is post-nav)
 
 ### Medium Priority
 
