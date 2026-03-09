@@ -623,6 +623,8 @@ const MessageBubble = React.forwardRef<
   const isUser = message.role === 'user';
   const hasGoalPreview = message.goalPreview && message.awaitingConfirmation;
   const showProposalButtons = message.awaitingConfirmation;
+  const redirect = !isUser ? parseRedirectCommand(message.content) : null;
+  const displayContent = redirect ? stripRedirectCommand(message.content) : message.content;
   // Get isProposalHandled from store
   const { isProposalHandled } = useChatStore();
   const isHandled = messageId ? isProposalHandled(messageId) : false;
