@@ -814,7 +814,15 @@ const MessageBubble = React.forwardRef<
         />
       )}
 
-      {/* Proposal Buttons for messages without goalPreview */}
+      {/* Inline redirect card */}
+      {redirect && onRedirectGo && (
+        <RedirectCard
+          redirect={redirect}
+          onGo={() => onRedirectGo(redirect)}
+          onStay={() => {}}
+        />
+      )}
+
       {showProposalButtons && !isUser && (
         <div className="flex flex-col lg:flex-row lg:justify-start gap-2 mt-2">
           {buttonsDisabled && (
