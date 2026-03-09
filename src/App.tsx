@@ -2,11 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useParams, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams, Navigate, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useViewStore } from "@/store/useViewStore";
 import { useGoalsStore } from "@/store/useGoalsStore";
+import { useBillingStore } from "@/store/useBillingStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -14,6 +15,7 @@ import { AccountDropdown } from "@/components/auth/AccountDropdown";
 import { GoalDetailView } from "@/components/goals/GoalDetailView";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { FloatingBackButton } from "@/components/ui/FloatingBackButton";
+import { UpgradeModal } from "@/components/billing/UpgradeModal";
 import { Outlet } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -22,6 +24,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { apiClient } from "./services/apiClient";
 import { authService } from "./services/authService";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +112,9 @@ const MainLayout = () => {
             onClose={() => setAccountDropdownOpen(false)}
           />
         )}
+
+        {/* Global UpgradeModal */}
+        <UpgradeModal />
       </div>
     </ProtectedRoute>
   );
@@ -119,20 +125,18 @@ const AppContent = () => {
   const initializeApp = useAuthStore((state) => state.initializeApp);
   const logout = useAuthStore((state) => state.logout);
   const fetchGoals = useGoalsStore((state) => state.fetchGoals);
+  const fetchBilling = useBillingStore((state) => state.fetchBilling);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   useKeyboardShortcuts(); // Initialize keyboard shortcuts
 
   // Register 401 callback to properly log out (clear user state + redirect)
   useEffect(() => {
     apiClient.setUnauthorizedCallback(() => {
-      // Clear user state from Zustand store
       logout();
-      // Redirect to login, preserving the intended destination
       navigate('/login', { state: { from: location }, replace: true });
     });
-
-    // Cleanup callback on unmount
     return () => {
       apiClient.setUnauthorizedCallback(null);
     };
@@ -142,9 +146,23 @@ const AppContent = () => {
     initializeApp().then(() => {
       if (useAuthStore.getState().user) {
         fetchGoals();
+        fetchBilling();
       }
     });
-  }, [initializeApp, fetchGoals]);
+  }, [initializeApp, fetchGoals, fetchBilling]);
+
+  // Handle Stripe checkout success redirect — refetch billing + clean URL
+  useEffect(() => {
+    if (searchParams.get('checkout') === 'success') {
+      toast.success('Subscription activated! Your plan has been upgraded.', { duration: 5000 });
+      fetchBilling();
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('checkout');
+        return next;
+      });
+    }
+  }, [searchParams, fetchBilling, setSearchParams]);
 
   // Re-validate auth when app returns to foreground (e.g. mobile tab switch)
   useEffect(() => {
