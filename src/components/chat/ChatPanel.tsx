@@ -617,8 +617,9 @@ const MessageBubble = React.forwardRef<
     isLatestProposal?: boolean;
     enableLiveExtraction?: boolean;
     onExtractionComplete?: (groupId: string, results: ExtractionResult[]) => void;
+    onRedirectGo?: (redirect: ReturnType<typeof parseRedirectCommand>) => void;
   }
->(({ message, messageId, onConfirm, onEdit, onCancel, onAccept, onDecline, isExiting, isLatestProposal = true, enableLiveExtraction = false, onExtractionComplete }, ref) => {
+>(({ message, messageId, onConfirm, onEdit, onCancel, onAccept, onDecline, isExiting, isLatestProposal = true, enableLiveExtraction = false, onExtractionComplete, onRedirectGo }, ref) => {
   const isUser = message.role === 'user';
   const hasGoalPreview = message.goalPreview && message.awaitingConfirmation;
   const showProposalButtons = message.awaitingConfirmation;
