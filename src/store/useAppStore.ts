@@ -1579,7 +1579,7 @@ export const useAppStore = create<AppState>()(
           const chat = await chatsService.getGoalChat(goalId) as any;
           console.log('[fetchGoalChat] Received chat data:', chat);
 
-          const mappedMessages = ((chat?.messages as any[]) || []).map((m: any) => ({
+          const mappedMessages: Message[] = ((chat?.messages as any[]) || []).map((m: any): Message => ({
             id: m.id,
             role: m.role === 'user' ? 'user' : 'assistant',
             content: toMessageContent(m.content),

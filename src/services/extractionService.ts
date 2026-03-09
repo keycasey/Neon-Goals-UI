@@ -70,7 +70,7 @@ export function connectToExtractionStream(
   onProgress: ExtractionCallback,
   onComplete: ExtractionCompleteCallback,
   onError: ExtractionErrorCallback,
-): { disconnect: () => void } {
+): () => void {
   // Include token as query param for SSE auth (EventSource doesn't support headers)
   // Note: API_BASE_URL doesn't include /api prefix, so we add it here
   const url = `${API_BASE_URL}/api/extraction/stream/${groupId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;

@@ -1,3 +1,4 @@
+import type { User } from '@/types/goals';
 import { apiClient } from './apiClient';
 import { API_BASE_URL } from '@/lib/apiConfig';
 
@@ -13,11 +14,11 @@ export const initiateGitHubLogin = () => {
  * Handle GitHub OAuth callback from backend
  * The backend returns a token in the query params
  */
-export const handleGitHubCallback = async (token: string) => {
+export const handleGitHubCallback = async (token: string): Promise<User> => {
   // Store the token
   localStorage.setItem('auth_token', token);
   apiClient.setToken(token);
 
   // Fetch user profile from backend using apiClient
-  return apiClient.get('/auth/me', true);
+  return apiClient.get<User>('/auth/me', true);
 };

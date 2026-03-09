@@ -60,9 +60,38 @@ const normalizeExtraction = (value: any) => {
   };
 };
 
+type ChatStoreInitialState = {
+  creationChat: ChatState;
+  goalChats: Record<string, ChatState>;
+  overviewChat: ChatState | null;
+  categoryChats: {
+    items: ChatState | null;
+    finances: ChatState | null;
+    actions: ChatState | null;
+  };
+  isCreatingGoal: boolean;
+  pendingCommands: PendingCommandsState | null;
+  handledProposals: Set<string>;
+  latestProposalMessageIds: Record<string, string | null>;
+  activeStreams: Set<string>;
+  activeExtractionGroups: Set<string>;
+};
+
+const toStringSet = (value: unknown): Set<string> => {
+  if (value instanceof Set) {
+    return new Set(Array.from(value).filter((item): item is string => typeof item === 'string'));
+  }
+
+  if (Array.isArray(value)) {
+    return new Set(value.filter((item): item is string => typeof item === 'string'));
+  }
+
+  return new Set<string>();
+};
+
 // Read initial state from useAppStore's localStorage
 // This keeps the slice in sync with the main store during the migration
-const getInitialState = () => {
+const getInitialState = (): ChatStoreInitialState => {
   try {
     const stored = localStorage.getItem('goals-af-storage');
     if (stored) {
@@ -71,14 +100,14 @@ const getInitialState = () => {
         creationChat: parsed?.state?.creationChat
           ? normalizeChatState(parsed.state.creationChat)
           : {
-          messages: [{
-            id: '1',
-            role: 'assistant',
-            content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
-            timestamp: new Date(),
-          }],
-          isLoading: false,
-        },
+            messages: [{
+              id: '1',
+              role: 'assistant',
+              content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
+              timestamp: new Date(),
+            }],
+            isLoading: false,
+          },
         goalChats: normalizeGoalChats(parsed?.state?.goalChats),
         overviewChat: parsed?.state?.overviewChat ? normalizeChatState(parsed.state.overviewChat) : null,
         categoryChats: normalizeCategoryChats(parsed?.state?.categoryChats),
@@ -86,7 +115,7 @@ const getInitialState = () => {
         pendingCommands: null,
         handledProposals: new Set<string>(),
         latestProposalMessageIds: {},
-        activeStreams: parsed?.state?.activeStreams ?? new Set<string>(),
+        activeStreams: toStringSet(parsed?.state?.activeStreams),
         activeExtractionGroups: new Set<string>(),
       };
     }
@@ -102,18 +131,18 @@ const getInitialState = () => {
         timestamp: new Date(),
       }],
       isLoading: false,
-    } as ChatState,
-    goalChats: {} as Record<string, ChatState>,
-    overviewChat: null as ChatState | null,
+    },
+    goalChats: {},
+    overviewChat: null,
     categoryChats: {
       items: null,
       finances: null,
       actions: null,
-    } as { items: ChatState | null; finances: ChatState | null; actions: ChatState | null },
+    },
     isCreatingGoal: false,
-    pendingCommands: null as PendingCommandsState | null,
+    pendingCommands: null,
     handledProposals: new Set<string>(),
-    latestProposalMessageIds: {} as Record<string, string | null>,
+    latestProposalMessageIds: {},
     activeStreams: new Set<string>(),
     activeExtractionGroups: new Set<string>(),
   };
@@ -874,7 +903,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
     try {
       const chat = await chatsService.getGoalChat(goalId) as any;
 
-      const mappedMessages = ((chat?.messages as any[]) || []).map((m: any) => ({
+      const mappedMessages: Message[] = ((chat?.messages as any[]) || []).map((m: any): Message => ({
         id: m.id,
         role: m.role === 'user' ? 'user' : 'assistant',
         content: toMessageContent(m.content),

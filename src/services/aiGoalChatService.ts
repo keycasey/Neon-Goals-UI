@@ -23,6 +23,13 @@ export const aiGoalChatService = {
   },
 
   /**
+   * Stop active goal chat stream
+   */
+  async stopStream(goalId: string): Promise<{ stopped: boolean; message: string }> {
+    return apiClient.post(`/ai/goal-chat/${goalId}/stop`);
+  },
+
+  /**
    * Confirm and execute pending commands for a goal chat
    */
   async confirmCommands(goalId: string, commands: ChatCommand[]): Promise<any> {
