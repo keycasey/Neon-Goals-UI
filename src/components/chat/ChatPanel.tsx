@@ -13,6 +13,10 @@ import remarkGfm from 'remark-gfm';
 import { formatExtractionResultsForAI } from '@/hooks/useExtraction';
 import { ExtractionMessageCard } from '@/components/extraction/ExtractionMessageCard';
 import type { ExtractionResult } from '@/services/extractionService';
+import { parseRedirectCommand, stripRedirectCommand } from '@/lib/redirectParser';
+import { RedirectCard } from '@/components/chat/RedirectCard';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const toSafeText = (value: unknown): string => (typeof value === 'string' ? value : value == null ? '' : String(value));
 const normalizeExtraction = (value: any) => {
