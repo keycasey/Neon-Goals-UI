@@ -496,6 +496,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Input */}
       {!isMinimized && (
         <form onSubmit={handleSubmit} className="p-4 border-t border-border/50">
+          {/* Usage chip */}
+          {usage && (isNearLimit || limitReached) && (
+            <div className={cn(
+              "flex items-center justify-between px-3 py-1.5 rounded-lg text-xs mb-2",
+              limitReached ? "bg-destructive/15 text-destructive border border-destructive/30" : "bg-warning/10 text-warning border border-warning/20"
+            )}>
+              <span>
+                {limitReached
+                  ? `Message limit reached (${usage.messagesUsed}/${usage.monthlyMessageLimit})`
+                  : `${usage.messagesUsed}/${usage.monthlyMessageLimit} messages used`}
+              </span>
+              <button type="button" onClick={() => openUpgrade('chat_limit_reached')} className="flex items-center gap-1 font-semibold hover:opacity-80">
+                <Zap className="w-3 h-3" /> Upgrade
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <motion.div
               animate={glowPulse ? {
@@ -520,17 +536,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything..."
+                placeholder={limitReached ? "Upgrade to keep chatting..." : "Ask me anything..."}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 disabled={chat.isLoading}
               />
             </motion.div>
             <button
               type="submit"
-              disabled={!input.trim() || chat.isLoading}
+              disabled={!input.trim() || chat.isLoading || limitReached}
               className={cn(
                 "p-3 rounded-xl transition-all",
-                input.trim() && !chat.isLoading
+                input.trim() && !chat.isLoading && !limitReached
                   ? "bg-gradient-neon text-primary-foreground neon-glow-cyan hover:scale-105"
                   : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
