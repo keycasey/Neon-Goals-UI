@@ -645,7 +645,7 @@ const MessageBubble = React.forwardRef<
         <div className="max-w-[85%] min-w-0 space-y-3 break-words [overflow-wrap:anywhere]">
           {/* Main message */}
           <div className="px-4 py-3 rounded-2xl bg-muted/50 text-white rounded-tl-sm border border-border/30 prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white prose-pre:text-white prose-pre-code:text-white max-w-none [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-white/10 [&_pre]:px-3 [&_pre]:py-2 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre_code]:whitespace-pre-wrap [&_pre_code]:break-words">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
           </div>
 
           {/* Markdown Preview Card */}
@@ -793,7 +793,7 @@ const MessageBubble = React.forwardRef<
             <p className="text-sm whitespace-pre-wrap leading-relaxed break-words [overflow-wrap:anywhere]">{message.content}</p>
           ) : (
             <div className="prose prose-sm dark:prose-invert prose-p:text-white prose-li:text-white prose-strong:text-white prose-h1:text-white prose-h2:text-white prose-h3:text-white prose-h4:text-white prose-code:text-white max-w-none break-words [overflow-wrap:anywhere] [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-1 [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre_code]:whitespace-pre-wrap [&_pre_code]:break-words">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
             </div>
           )}
           <p className={cn(
