@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, User, Palette, MessageSquare, Bell, Shield, Database, ArrowLeft, LogIn } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Settings as SettingsIcon, User, Palette, MessageSquare, Bell, Shield, Database, ArrowLeft, LogIn, CreditCard, Code } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useBillingStore } from '@/store/useBillingStore';
+import { BillingPlanCards } from '@/components/billing/BillingPlanCards';
+import { UsageMeter } from '@/components/billing/UsageMeter';
+import { ApiAccessGate } from '@/components/billing/ApiAccessGate';
 import { cn } from '@/lib/utils';
 
 const Settings = () => {
