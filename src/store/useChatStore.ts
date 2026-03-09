@@ -903,7 +903,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
     try {
       const chat = await chatsService.getGoalChat(goalId) as any;
 
-      const mappedMessages = ((chat?.messages as any[]) || []).map((m: any) => ({
+      const mappedMessages: Message[] = ((chat?.messages as any[]) || []).map((m: any): Message => ({
         id: m.id,
         role: m.role === 'user' ? 'user' : 'assistant',
         content: toMessageContent(m.content),
