@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Sparkles, Minimize2, Maximize2, Check, XCircle, CheckCircle, Edit3, Zap } from 'lucide-react';
+import { MessageActions } from '@/components/chat/MessageActions';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/store/useChatStore';
 import { useGoalsStore } from '@/store/useGoalsStore';
