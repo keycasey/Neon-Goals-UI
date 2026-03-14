@@ -30,11 +30,11 @@
 
 - [x] Agent Message wrapper component (ChatPanel MessageBubble handles command parsing, proposals, redirects, extractions)
 - [x] Proposal Button components (Confirm/Edit/Cancel + Accept/Decline with expand-on-hover)
-- [ ] Streaming text display
-  - [ ] Wire streaming APIs (chatStream) into useChatStore instead of non-streaming chat()
-  - [ ] Replace Send button with Stop button while agent is responding
-  - [ ] Render streamed text character-by-character using StreamingIndicator component (exists but unused)
-  - [ ] Show typing indicator at end of stream
+- [x] Streaming text display
+  - [x] Wire streaming APIs (chatStream) into useChatStore for overview, category, and goal chats
+  - [x] Replace Send button with Stop button while agent is responding (ChatPanel, SpecialistChatPanel, OverviewChatPage)
+  - [x] Render streamed text progressively as chunks arrive (store updates message content incrementally)
+  - [x] Fallback to non-streaming chat() on stream error
 
 ---
 
