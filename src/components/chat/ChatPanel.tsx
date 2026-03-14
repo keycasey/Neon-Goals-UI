@@ -384,7 +384,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || chat.isLoading) return;
+    if (!input.trim() || isStreaming) return;
 
     // Entitlement gate: block if message limit reached
     if (limitReached) {
