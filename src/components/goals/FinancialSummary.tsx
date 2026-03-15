@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, TrendingUp, Target, Wallet, ChevronDown, ChevronUp, Landmark, Plus, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGoalsStore } from '@/store/useGoalsStore';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { useProjectionStore } from '@/store/useProjectionStore';
 import type { FinanceGoal } from '@/types/goals';
 import { PlaidAccountCard } from '@/components/plaid/PlaidAccountCard';
 import { AccountSectionEmpty } from '@/components/plaid/AccountSectionEmpty';
@@ -11,6 +12,12 @@ import { TransactionModal } from '@/components/plaid/TransactionModal';
 import { usePlaid, type PendingPlaidAccount } from '@/hooks/usePlaidLink';
 import { SyncToast, useSyncToast } from '@/components/ui/SyncToast';
 import type { PlaidAccount } from '@/services/plaidService';
+import { ProjectionHero } from '@/components/projections/ProjectionHero';
+import { ProjectionChartCard } from '@/components/projections/ProjectionChartCard';
+import { GoalForecastCard } from '@/components/projections/GoalForecastCard';
+import { RecurringCashflowCard } from '@/components/projections/RecurringCashflowCard';
+import { ScenarioControls } from '@/components/projections/ScenarioControls';
+import { AccountCoverageCard } from '@/components/projections/AccountCoverageCard';
 
 interface FinancialSummaryProps {
   className?: string;
