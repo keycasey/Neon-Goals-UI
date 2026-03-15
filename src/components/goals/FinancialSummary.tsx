@@ -72,10 +72,24 @@ const isDebtType = (type: string, subtype?: string) => {
 export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className }) => {
   const { goals } = useGoalsStore();
   const { syncFinanceGoal } = useFinanceStore();
+  const fetchOverview = useProjectionStore((s) => s.fetchOverview);
+  const fetchCashflow = useProjectionStore((s) => s.fetchCashflow);
+  const fetchGoalForecasts = useProjectionStore((s) => s.fetchGoalForecasts);
+  const fetchManualAccounts = useProjectionStore((s) => s.fetchManualAccounts);
+  const fetchManualCashflows = useProjectionStore((s) => s.fetchManualCashflows);
   const [showAccounts, setShowAccounts] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<PlaidAccount | null>(null);
   const syncToast = useSyncToast();
   const { open: openPlaidLink, isLoading: isPlaidLoading, error: plaidError, accounts, pendingAccounts, syncAccount, removeAccount, isSyncing, fetchAccounts } = usePlaid();
+
+  // Fetch projection data on mount
+  useEffect(() => {
+    fetchOverview();
+    fetchCashflow();
+    fetchGoalForecasts();
+    fetchManualAccounts();
+    fetchManualCashflows();
+  }, []);
 
   const financeGoals = goals.filter(
     (goal): goal is FinanceGoal => goal.type === 'finance' && goal.status === 'active'
