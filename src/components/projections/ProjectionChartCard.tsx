@@ -152,7 +152,7 @@ export const ProjectionChartCard: React.FC = () => {
               <ReferenceDot
                 key={ms.goalId}
                 x={point.label}
-                y={point.projectedValue}
+                y={point.value}
                 r={4}
                 fill="hsl(150 100% 50%)"
                 stroke="hsl(222 47% 5%)"
