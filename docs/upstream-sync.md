@@ -30,3 +30,5 @@ The sync automation lives in:
 - `.github/workflows/sync-upstream.yml`
 
 This document is intentionally kept in the fork so sync behavior is easy to verify and update.
+
+Latest verification was done after updating the upstream sync token permissions.
