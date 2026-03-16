@@ -6,7 +6,12 @@ This fork is the source of truth for UI changes, including Lovable edits.
 
 On every push to `main` in `caseyjkey/Neon-Goals-UI`, GitHub Actions force-pushes the same commit to `keycasey/Neon-Goals-UI` `main`.
 
-The upstream repository keeps the deployment workflow, so syncing to upstream triggers production deployment there.
+Both repositories keep the workflow files in git, but each workflow is guarded by repository name:
+
+- `Sync Upstream` only runs in `caseyjkey/Neon-Goals-UI`
+- `Deploy to EC2` only runs in `keycasey/Neon-Goals-UI`
+
+That keeps direct main-to-main sync simple while preventing the fork from trying to deploy.
 
 ## Required Secret
 
@@ -15,6 +20,8 @@ Configure this repository secret in the fork:
 - `UPSTREAM_SYNC_TOKEN`
 
 The token must have write access to `keycasey/Neon-Goals-UI`.
+
+If you use a personal access token, it also needs permission to update workflow files in the upstream repo.
 
 ## Workflow
 

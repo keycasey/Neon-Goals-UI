@@ -11,6 +11,7 @@ concurrency:
 
 jobs:
   sync:
+    if: github.repository == 'caseyjkey/Neon-Goals-UI'
     runs-on: ubuntu-latest
     steps:
       - name: Check out fork main
