@@ -12,8 +12,19 @@ jobs:
     steps:
       - name: Deploy
         run: |
+          set -euo pipefail
           export PATH=/home/ec2-user/.bun/bin:$PATH
           cd /var/www/Neon-Goals-UI
-          git pull origin main
+          git fetch origin main
+
+          deploy_src="$(mktemp -d /tmp/neon-goals-ui-deploy.XXXXXX)"
+          cleanup() {
+            rm -rf -- "$deploy_src"
+          }
+          trap cleanup EXIT
+
+          git archive origin/main | tar -x -C "$deploy_src"
+          cd "$deploy_src"
           bun install --frozen-lockfile
           bun run build
+          rsync -a --delete dist/ /var/www/Neon-Goals-UI/dist/
