@@ -26,6 +26,7 @@ const findGoalById = (goals: Goal[], id: string): Goal | null => {
 const Index = () => {
   const [isDesktop, setIsDesktop] = useState(false);
   const [sortBy, setSortBy] = useState('createdAt');
+  const [showArchived, setShowArchived] = useState(false);
   const hasClearedGoal = React.useRef(false);
 
   const { sidebarOpen, setSidebarOpen, currentGoalId, closeGoal, activeCategory, isChatMinimized } = useViewStore();
@@ -133,11 +134,13 @@ const Index = () => {
           <GoalSortBar
             sortBy={sortBy}
             onSortChange={setSortBy}
+            showArchived={showArchived}
+            onShowArchivedChange={setShowArchived}
             className="mb-4"
           />
 
           {/* Goal Cards Grid */}
-          <GoalGrid sortBy={sortBy} />
+          <GoalGrid sortBy={sortBy} showArchived={showArchived} />
         </main>
       </motion.div>
 

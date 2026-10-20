@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Archive, Trash2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getProgressBreakdown, isFullyComplete } from '@/lib/progressCalculator';
 import type { ActionGoal } from '@/types/goals';
@@ -9,6 +9,7 @@ interface ActionGoalCardProps {
   goal: ActionGoal;
   onViewDetail: (goalId: string) => void;
   onDelete: (goalId: string) => void;
+  onArchive: (goalId: string) => void;
   animationIndex: number;
 }
 
@@ -22,6 +23,7 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
   goal,
   onViewDetail,
   onDelete,
+  onArchive,
   animationIndex,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -87,6 +89,15 @@ export const ActionGoalCard: React.FC<ActionGoalCardProps> = ({
 
         {/* Top Right Actions - absolute positioned */}
         <div className="absolute top-5 right-5 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {goal.status !== 'archived' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onArchive(goal.id); }}
+              className="p-3 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-warning transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Archive"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(goal.id); }}
             className="p-3 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"

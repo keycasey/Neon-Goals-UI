@@ -305,7 +305,7 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
             <ExternalLink className="w-4 h-4" />
           </a>
         )}
-        {onArchive && (
+        {onArchive && goal.status !== 'archived' && (
           <button
             onClick={(e) => { e.stopPropagation(); onArchive(goal.id); }}
             className="p-1.5 rounded-lg bg-muted/50 text-muted-foreground hover:text-warning hover:bg-muted transition-colors"

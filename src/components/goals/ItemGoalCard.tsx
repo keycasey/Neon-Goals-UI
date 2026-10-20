@@ -166,13 +166,15 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
 
         {/* Quick Actions - absolute top-right, doesn't affect layout */}
         <div className="absolute top-3 right-3 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={(e) => { e.stopPropagation(); onArchive(latestGoal.id); }}
-            className="p-3 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-warning transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Archive"
-          >
-            <Archive className="w-4 h-4" />
-          </button>
+          {latestGoal.status !== 'archived' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onArchive(latestGoal.id); }}
+              className="p-3 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-warning transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Archive"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(latestGoal.id); }}
             className="p-3 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"

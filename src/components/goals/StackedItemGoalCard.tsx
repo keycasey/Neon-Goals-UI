@@ -282,13 +282,15 @@ export const StackedItemGoalCard = React.forwardRef<
                     >
                       <ExternalLink className="w-3 h-3" />
                     </a>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onArchive(goal.id); }}
-                      className="p-1 rounded-md bg-muted/50 text-muted-foreground hover:text-warning transition-colors"
-                      aria-label="Archive"
-                    >
-                      <Archive className="w-3 h-3" />
-                    </button>
+                    {goal.status !== 'archived' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onArchive(goal.id); }}
+                        className="p-1 rounded-md bg-muted/50 text-muted-foreground hover:text-warning transition-colors"
+                        aria-label="Archive"
+                      >
+                        <Archive className="w-3 h-3" />
+                      </button>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); onDelete(goal.id); }}
                       className="p-1 rounded-md bg-muted/50 text-muted-foreground hover:text-destructive transition-colors"

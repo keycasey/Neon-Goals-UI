@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Target } from 'lucide-react';
+import { Archive, RefreshCw, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FinanceGoal } from '@/types/goals';
 
@@ -10,6 +10,7 @@ interface FinanceGoalCardProps {
   onViewDetail: (goalId: string) => void;
   onSync: (goalId: string) => void;
   onDelete: (goalId: string) => void;
+  onArchive: (goalId: string) => void;
   animationIndex: number;
 }
 
@@ -25,6 +26,7 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
   onViewDetail,
   onSync,
   onDelete,
+  onArchive,
   animationIndex,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -102,6 +104,15 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
           >
             <RefreshCw className="w-4 h-4" />
           </button>
+          {goal.status !== 'archived' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onArchive(goal.id); }}
+              className="p-3 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-warning transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Archive"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(goal.id); }}
             className="p-3 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"

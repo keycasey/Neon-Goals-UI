@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 interface GoalGridProps {
   className?: string;
   sortBy?: string;
+  showArchived?: boolean;
 }
 
 // Module-level flag to track if initial animation has played
@@ -28,7 +29,11 @@ const springConfig = {
   damping: 25,
 };
 
-export const GoalGrid: React.FC<GoalGridProps> = ({ className, sortBy = 'createdAt' }) => {
+export const GoalGrid: React.FC<GoalGridProps> = ({
+  className,
+  sortBy = 'createdAt',
+  showArchived = false,
+}) => {
   const navigate = useNavigate();
   // Always animate on mount - use ref to track if THIS instance has animated
   const hasAnimatedRef = React.useRef(false);
@@ -93,7 +98,8 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className, sortBy = 'created
 
   const filteredGoals = useMemo(() => {
     const filtered = goals.filter(goal => {
-      if (goal.status !== 'active') return false;
+      const isVisibleStatus = goal.status === 'active' || (showArchived && goal.status === 'archived');
+      if (!isVisibleStatus) return false;
       if (goal.parentGoalId) return false;
       if (activeCategory === 'all') return true;
       if (activeCategory === 'items') return goal.type === 'item';
@@ -133,7 +139,7 @@ export const GoalGrid: React.FC<GoalGridProps> = ({ className, sortBy = 'created
         }
       }
     });
-  }, [goals, activeCategory, sortBy]);
+  }, [goals, activeCategory, showArchived, sortBy]);
 
   // Group item goals by stackId
   const { stackedGoals, individualGoals } = useMemo(() => {
@@ -316,6 +322,7 @@ const GoalCardWrapper = React.forwardRef<
           onViewDetail={onViewDetail}
           onSync={onSync}
           onDelete={onDelete}
+          onArchive={onArchive}
           animationIndex={animationIndex}
         />
       );
@@ -325,6 +332,7 @@ const GoalCardWrapper = React.forwardRef<
           goal={goal as ActionGoal}
           onViewDetail={onViewDetail}
           onDelete={onDelete}
+          onArchive={onArchive}
           animationIndex={animationIndex}
         />
       );

@@ -53,15 +53,18 @@ export const GroupGoalCard: React.FC<GroupGoalCardProps> = ({
       >
         {/* Action buttons (hover) */}
         <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onArchive(goal.id);
-            }}
-            className="p-2 rounded-lg bg-background/80 backdrop-blur-sm hover:bg-accent transition-colors neon-border-subtle"
-          >
-            <Archive className="w-4 h-4" />
-          </button>
+          {goal.status !== 'archived' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onArchive(goal.id);
+              }}
+              className="p-2 rounded-lg bg-background/80 backdrop-blur-sm hover:bg-accent transition-colors neon-border-subtle"
+              aria-label="Archive"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
