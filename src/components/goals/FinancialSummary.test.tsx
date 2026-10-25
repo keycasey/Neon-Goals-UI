@@ -130,16 +130,41 @@ describe('FinancialSummary add account modal', () => {
     fetchManualCashflows.mockReset();
   });
 
-  it('opens the shared add-account chooser from an account section plus button', () => {
+  it('opens the shared add-account chooser from an account section plus button', async () => {
     render(<FinancialSummary />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Toggle accounts' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add Cash Accounts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Cash Accounts' }));
 
-    expect(screen.getByRole('heading', { name: 'Add Account' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Add Account' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Link with Plaid/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add Manual Account/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Manual Cashflow/ })).not.toBeInTheDocument();
+  }, 15_000);
+
+  it('toggles between the overview and bank accounts in the same content area', async () => {
+    render(<FinancialSummary />);
+
+    const toggle = screen.getByRole('button', { name: 'Toggle accounts' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('ProjectionHero')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Bank accounts' })).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('heading', { name: 'Bank accounts' })).toBeInTheDocument();
+      expect(screen.queryByText('ProjectionHero')).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByText('ProjectionHero')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Bank accounts' })).not.toBeInTheDocument();
+    });
   });
 
   it('shows an error toast when bulk sync fails', async () => {

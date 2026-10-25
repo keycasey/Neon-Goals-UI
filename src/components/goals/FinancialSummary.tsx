@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, TrendingUp, Target, Wallet, ChevronDown, ChevronUp, Landmark, Plus, AlertCircle } from 'lucide-react';
+import { RefreshCw, TrendingUp, Target, Wallet, Landmark, Plus, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGoalsStore } from '@/store/useGoalsStore';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -323,7 +323,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
 
   // Auto-expand accounts section when linking a new account
   React.useEffect(() => {
-    if (isPlaidLoading && !showAccounts) {
+    if (isPlaidLoading) {
       setShowAccounts(true);
     }
   }, [isPlaidLoading]);
@@ -375,15 +375,34 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
               </button>
             </div>
             <button
-              onClick={() => setShowAccounts(!showAccounts)}
-              className="flex items-center justify-center p-2.5 rounded-lg bg-muted/50 text-foreground hover:bg-muted transition-colors min-w-[44px] min-h-[44px]"
+              type="button"
+              onClick={() => setShowAccounts((isVisible) => !isVisible)}
+              aria-pressed={showAccounts}
               aria-label="Toggle accounts"
+              title={showAccounts ? 'Show financial overview' : 'Show bank accounts'}
+              className={cn(
+                "group flex min-h-[44px] items-center justify-center gap-2 rounded-lg border px-3 py-2.5 transition-all duration-200",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                showAccounts
+                  ? "border-primary/60 bg-primary/15 text-primary shadow-[0_0_18px_hsl(var(--primary)/0.18)]"
+                  : "border-transparent bg-muted/50 text-foreground hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+              )}
             >
-              <Landmark className="w-4 h-4" />
+              <Landmark className={cn("h-4 w-4 transition-transform duration-200", showAccounts && "scale-110")} />
+              <span className="hidden text-sm font-medium sm:inline">Accounts</span>
             </button>
           </div>
         </div>
 
+        <AnimatePresence initial={false}>
+          {!showAccounts ? (
+            <motion.div
+              key="overview"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.2 }}
+            >
         {/* Stats Grid - flex-wrap so cards become rows when container is narrow or values are wide */}
         <div className="flex flex-wrap gap-4">
           {/* Net Worth */}
@@ -477,19 +496,36 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
           />
           <ScenarioControls />
         </div>
-      </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="accounts"
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 12 }}
+              transition={{ duration: 0.2 }}
+              aria-label="Bank accounts"
+              className="space-y-5"
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-border/30 pb-4">
+                <div>
+                  <h4 className="font-heading font-semibold text-foreground">Bank accounts</h4>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Review balances, reconnect institutions, and add accounts.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openAddDialog}
+                  disabled={isPlaidLoading}
+                  className="flex min-h-[40px] shrink-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition-all hover:border-primary/60 hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Plus className={cn("h-4 w-4", isPlaidLoading && "animate-pulse")} />
+                  <span className="hidden sm:inline">Add account</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              </div>
 
-      {/* Accounts Section (Collapsible) */}
-      <AnimatePresence>
-        {showAccounts && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="px-6 pb-6 pt-2 border-t border-border/30 space-y-4">
               {/* Cash Accounts Section */}
               <AccountSection
                 title="Cash Accounts"
@@ -546,10 +582,10 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({ className })
                 isPlaidLoading={isPlaidLoading}
                 reconnectRequiredAccounts={reconnectRequiredAccounts}
               />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       </motion.div>
 
       {/* Sync Toast */}
