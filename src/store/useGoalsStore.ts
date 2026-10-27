@@ -71,8 +71,9 @@ interface GoalsState {
   createSubgoal: (data: any, parentGoalId: string) => Promise<void>;
 
   // Task actions (for ActionGoals)
-  toggleTask: (goalId: string, taskId: string) => void;
+  toggleTask: (goalId: string, taskId: string) => Promise<void>;
   addTask: (goalId: string, title: string) => void;
+  scheduleTask: (goalId: string, title: string, scheduledFor: string) => Promise<void>;
 
   // Item search/update
   searchAndUpdateGoal: (goalId: string, query?: string) => Promise<void>;
@@ -209,8 +210,10 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
   },
 
   // Task actions (for ActionGoals)
-  toggleTask: (goalId, taskId) => set((state) => ({
-    goals: state.goals.map((goal) => {
+  toggleTask: async (goalId, taskId) => {
+    const previous = get().goals;
+    set((state) => ({
+      goals: state.goals.map((goal) => {
       if (goal.id === goalId && goal.type === 'action') {
         const actionGoal = goal as ActionGoal;
         const updatedTasks = actionGoal.tasks.map((task) =>
@@ -227,8 +230,16 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
         };
       }
       return goal;
-    }),
-  })),
+      }),
+    }));
+    if (useAuthStore.getState().isDemoMode) return;
+    try {
+      await goalsService.toggleTask(goalId, taskId);
+    } catch (error) {
+      set({ goals: previous });
+      throw error;
+    }
+  },
 
   addTask: (goalId, title) => set((state) => ({
     goals: state.goals.map((goal) => {
@@ -254,6 +265,27 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
       return goal;
     }),
   })),
+
+  scheduleTask: async (goalId, title, scheduledFor) => {
+    if (useAuthStore.getState().isDemoMode) {
+      get().addTask(goalId, title);
+      set((state) => ({
+        goals: state.goals.map((goal) =>
+          goal.id === goalId && goal.type === 'action'
+            ? {
+                ...goal,
+                tasks: goal.tasks.map((task, index) =>
+                  index === goal.tasks.length - 1 ? { ...task, scheduledFor } : task,
+                ),
+              }
+            : goal,
+        ),
+      }));
+      return;
+    }
+    await goalsService.createTask(goalId, { title, scheduledFor });
+    await get().fetchGoals();
+  },
 
   searchAndUpdateGoal: async (goalId, _query) => {
     try {

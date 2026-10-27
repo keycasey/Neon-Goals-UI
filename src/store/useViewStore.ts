@@ -37,7 +37,7 @@ export const useViewStore = create<ViewState>()(
   goalNavigationStack: [],
   navigationDirection: null as 'forward' | 'back' | null,
   sidebarOpen: true,
-  activeCategory: 'all' as GoalCategory,
+  activeCategory: 'today' as GoalCategory,
   isChatMinimized: false,
   chatPulseTrigger: 0,
 
@@ -119,6 +119,16 @@ export const useViewStore = create<ViewState>()(
   }),
   {
     name: 'goals-view-storage',
+    version: 2,
+    migrate: (persistedState, version) => {
+      const state = persistedState as Partial<ViewState>;
+      // Today became the primary dashboard in v2. Move existing installs there
+      // once; subsequent category choices continue to persist normally.
+      if (version < 2 && state.activeCategory === 'all') {
+        return { ...state, activeCategory: 'today' as GoalCategory };
+      }
+      return state;
+    },
     // Only persist user preferences — not transient navigation state
     partialize: (state) => ({
       viewMode: state.viewMode,

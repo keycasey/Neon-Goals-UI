@@ -31,6 +31,7 @@ export interface Goal {
   updatedAt: Date;
   status: GoalStatus;
   targetDate?: Date;
+  deadline?: string | Date | null;
   parentGoalId?: string;  // ID of parent goal if this is a subgoal
   subgoals?: Goal[];      // Array of subgoals (populated when fetching goals)
 }
@@ -101,6 +102,7 @@ export interface ActionTask {
   title: string;
   completed: boolean;
   createdAt: Date;
+  scheduledFor?: string | Date | null;
 }
 
 export interface GroupGoal extends Goal {
@@ -232,5 +234,5 @@ export interface ChatState {
   isLoading: boolean;
 }
 
-export type GoalCategory = 'all' | 'items' | 'finances' | 'actions' | 'groups';
+export type GoalCategory = 'today' | 'all' | 'wishlist' | 'items' | 'finances' | 'actions' | 'groups';
 export type ViewMode = 'list' | 'card';

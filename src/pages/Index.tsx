@@ -6,6 +6,8 @@ import { GoalDetailView } from '@/components/goals/GoalDetailView';
 import { FinancialSummary } from '@/components/goals/FinancialSummary';
 import { OverviewProjectionCard } from '@/components/goals/OverviewProjectionCard';
 import { GoalSortBar } from '@/components/goals/GoalSortBar';
+import { TodayDashboard } from '@/components/today/TodayDashboard';
+import { WishlistView } from '@/components/wishlist/WishlistView';
 import { useViewStore } from '@/store/useViewStore';
 import { useGoalsStore } from '@/store/useGoalsStore';
 import { cn } from '@/lib/utils';
@@ -73,12 +75,16 @@ const Index = () => {
 
   const getCategoryTitle = () => {
     switch (activeCategory) {
+      case 'today': return 'Today';
+      case 'wishlist': return 'Wishlist';
       case 'items': return 'Item Goals';
       case 'finances': return 'Financial Goals';
       case 'actions': return 'Action Goals';
       default: return 'All Goals';
     }
   };
+
+  const isFocusView = activeCategory === 'today' || activeCategory === 'wishlist';
 
   return (
     <>
@@ -116,31 +122,40 @@ const Index = () => {
               {getCategoryTitle()}
             </h1>
             <p className="text-muted-foreground">
-              Build your reality 🌴
+              {activeCategory === 'today'
+                ? 'Move what matters without losing the horizon.'
+                : activeCategory === 'wishlist'
+                  ? 'Keep the want. Delay the commitment.'
+                  : 'Build your reality 🌴'}
             </p>
           </div>
 
+          {activeCategory === 'today' && <TodayDashboard />}
+          {activeCategory === 'wishlist' && <WishlistView />}
+
           {/* Projection Card on overview (motivation-first, lightweight) */}
-          {activeCategory === 'all' && (
+          {!isFocusView && activeCategory === 'all' && (
             <OverviewProjectionCard className="mb-6" />
           )}
 
           {/* Full Financial Summary on finance category (detailed, analytical) */}
-          {activeCategory === 'finances' && (
+          {!isFocusView && activeCategory === 'finances' && (
             <FinancialSummary className="mb-6" />
           )}
 
           {/* Sort Bar */}
-          <GoalSortBar
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            showArchived={showArchived}
-            onShowArchivedChange={setShowArchived}
-            className="mb-4"
-          />
+          {!isFocusView && (
+            <GoalSortBar
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              showArchived={showArchived}
+              onShowArchivedChange={setShowArchived}
+              className="mb-4"
+            />
+          )}
 
           {/* Goal Cards Grid */}
-          <GoalGrid sortBy={sortBy} showArchived={showArchived} />
+          {!isFocusView && <GoalGrid sortBy={sortBy} showArchived={showArchived} />}
         </main>
       </motion.div>
 

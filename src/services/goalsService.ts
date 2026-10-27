@@ -164,12 +164,20 @@ export const goalsService = {
   },
 
   // Task operations
-  async createTask(goalId: string, data: { title: string }) {
+  async createTask(goalId: string, data: { title: string; scheduledFor?: string }) {
     return apiClient.post(`/goals/${goalId}/tasks`, data);
   },
 
   async toggleTask(goalId: string, taskId: string) {
     return apiClient.patch(`/goals/${goalId}/tasks/${taskId}/toggle`);
+  },
+
+  async updateTask(
+    goalId: string,
+    taskId: string,
+    data: { title?: string; completed?: boolean; scheduledFor?: string | null },
+  ) {
+    return apiClient.patch(`/goals/${goalId}/tasks/${taskId}`, data);
   },
 
   async deleteTask(goalId: string, taskId: string) {

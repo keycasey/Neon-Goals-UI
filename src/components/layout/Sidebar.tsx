@@ -12,20 +12,25 @@ import {
   LayoutGrid,
   List,
   ChevronRight,
+  CalendarCheck2,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useViewStore } from '@/store/useViewStore';
 import { useGoalsStore } from '@/store/useGoalsStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import type { GoalCategory } from '@/types/goals';
+import type { ActionGoal, GoalCategory } from '@/types/goals';
+import { useWishlistStore } from '@/store/useWishlistStore';
 
 // SIDEBAR WIDTH - exported for use in other components
 export const SIDEBAR_WIDTH = 280;
 export const SIDEBAR_HANDLE_WIDTH = 48;
 
 const categories: { id: GoalCategory; label: string; icon: React.ReactNode }[] = [
+  { id: 'today', label: 'Today', icon: <CalendarCheck2 className="w-5 h-5" /> },
   { id: 'all', label: 'All Goals', icon: <LayoutGrid className="w-5 h-5" /> },
-  { id: 'items', label: 'Items', icon: <ShoppingBag className="w-5 h-5" /> },
+  { id: 'wishlist', label: 'Wishlist', icon: <Sparkles className="w-5 h-5" /> },
+  { id: 'items', label: 'Product Research', icon: <ShoppingBag className="w-5 h-5" /> },
   { id: 'finances', label: 'Finances', icon: <Wallet className="w-5 h-5" /> },
   { id: 'actions', label: 'Actions', icon: <Target className="w-5 h-5" /> },
 ];
@@ -41,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
 
   const { sidebarOpen, toggleSidebar, setSidebarOpen, activeCategory, setActiveCategory, viewMode, setViewMode, selectGoal, currentGoalId, closeGoal } = useViewStore();
   const { goals } = useGoalsStore();
+  const wishlistItems = useWishlistStore((state) => state.items);
   const { user } = useAuthStore();
 
   // Determine if we're in goal view mode
@@ -148,6 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
   };
 
   const filteredGoals = goals.filter(goal => {
+    if (activeCategory === 'today' || activeCategory === 'wishlist') return false;
     if (activeCategory === 'all') return goal.status === 'active';
     if (activeCategory === 'items') return goal.type === 'item' && goal.status === 'active';
     if (activeCategory === 'finances') return goal.type === 'finance' && goal.status === 'active';
@@ -156,6 +163,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
   });
 
   const getCategoryCount = (category: GoalCategory) => {
+    if (category === 'wishlist') return wishlistItems.filter((item) => !['purchased', 'dropped'].includes(item.stage)).length;
+    if (category === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return goals.reduce((count, goal) => {
+        if (goal.type !== 'action') return count;
+        return count + (goal as ActionGoal).tasks.filter((task) => {
+          if (task.completed || !task.scheduledFor) return false;
+          const scheduled = new Date(task.scheduledFor);
+          scheduled.setHours(0, 0, 0, 0);
+          return scheduled <= today;
+        }).length;
+      }, 0);
+    }
     if (category === 'all') return goals.filter(g => g.status === 'active').length;
     const typeMap: Record<string, string> = {
       items: 'item',

@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ className, accountDropdownOpen, setAccountDropdownOpen }) => {
-  const { toggleSidebar, sidebarOpen, viewMode, setViewMode } = useViewStore();
+  const { toggleSidebar, viewMode, setViewMode, activeCategory } = useViewStore();
   const { user } = useAuthStore();
 
   return (
@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ className, accountDropdownOpen, 
       </div>
 
       {/* Center Section - View Toggle (Mobile/Tablet) */}
-      <div className="flex md:hidden items-center">
+      <div className={cn("md:hidden items-center", ['today', 'wishlist'].includes(activeCategory) ? 'hidden' : 'flex')}>
         <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-border">
           <button
             onClick={() => setViewMode('list')}

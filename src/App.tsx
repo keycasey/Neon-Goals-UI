@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useViewStore } from "@/store/useViewStore";
 import { useGoalsStore } from "@/store/useGoalsStore";
 import { useBillingStore } from "@/store/useBillingStore";
+import { useWishlistStore } from "@/store/useWishlistStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -127,6 +128,7 @@ const AppContent = () => {
   const logout = useAuthStore((state) => state.logout);
   const fetchGoals = useGoalsStore((state) => state.fetchGoals);
   const fetchBilling = useBillingStore((state) => state.fetchBilling);
+  const fetchWishlist = useWishlistStore((state) => state.fetchItems);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -148,9 +150,10 @@ const AppContent = () => {
       if (useAuthStore.getState().user) {
         fetchGoals();
         fetchBilling();
+        fetchWishlist();
       }
     });
-  }, [initializeApp, fetchGoals, fetchBilling]);
+  }, [initializeApp, fetchGoals, fetchBilling, fetchWishlist]);
 
   // Handle Stripe checkout success redirect — refetch billing + clean URL
   useEffect(() => {
