@@ -211,7 +211,7 @@ export const FinancialAccountCard: React.FC<FinancialAccountCardProps> = ({
 };
 
 // Sample accounts for demo
-export const sampleAccounts: FinancialAccount[] = [
+const sampleAccounts: FinancialAccount[] = [
   {
     id: 'cap1-checking',
     institutionName: 'Capital One',

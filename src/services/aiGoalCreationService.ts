@@ -1,11 +1,13 @@
 import { apiClient } from './apiClient';
+import type { Goal } from '@/types/goals';
 
 export interface GoalCreationResponse {
   content: string;
   goalCreated: boolean;
-  goal?: any;
+  goal?: Goal;
   goalPreview?: string;
   awaitingConfirmation?: boolean;
+  proposalType?: 'confirm_edit_cancel' | 'accept_decline';
 }
 
 export const aiGoalCreationService = {

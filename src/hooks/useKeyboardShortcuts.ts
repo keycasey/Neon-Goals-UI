@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useViewStore } from '@/store/useViewStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -21,7 +21,7 @@ export const useKeyboardShortcuts = () => {
   } = useViewStore();
   const { user, logout } = useAuthStore();
 
-  const shortcuts: KeyboardShortcut[] = [
+  const shortcuts: KeyboardShortcut[] = useMemo(() => [
     {
       key: 'Escape',
       description: 'Close goal detail or modal',
@@ -75,7 +75,7 @@ export const useKeyboardShortcuts = () => {
         alert('Keyboard Shortcuts:\nESC - Close goal detail\nN - New goal\nL - Login/Logout\nH - Toggle sidebar\n/ - Search\n? - Show this help');
       },
     },
-  ];
+  ], [closeGoal, currentGoalId, logout, navigate, setActiveCategory, setSidebarOpen, sidebarOpen, user]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -103,7 +103,7 @@ export const useKeyboardShortcuts = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [shortcuts, currentGoalId, sidebarOpen, user]);
+  }, [shortcuts]);
 
   return { shortcuts };
 };

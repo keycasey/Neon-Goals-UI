@@ -19,7 +19,7 @@ export interface ScrapeJob {
   startedAt?: Date;
   completedAt?: Date;
   error?: string;
-  results?: any;
+  results?: unknown;
 }
 
 export interface Goal {
@@ -55,7 +55,7 @@ export interface ItemGoal extends Goal {
   stackOrder?: number; // Order within the stack (0 = front)
   // Search parameters - backend builds retailerFilters based on searchTerm
   searchTerm?: string;
-  retailerFilters?: Record<string, any>;
+  retailerFilters?: Record<string, unknown>;
 }
 
 export interface ProductSearchResult {
@@ -178,7 +178,7 @@ export interface ProposalDecisionRecord {
   outcome?: string;
   status?: string;
   decidedAt?: Date | string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ExtractionInfo {
@@ -191,7 +191,7 @@ export interface MessageMetadata {
   goalPreview?: string;
   awaitingConfirmation?: boolean;
   proposalType?: ProposalType;
-  commands?: Array<{ type: string; data: any }>;
+  commands?: Array<{ type: string; data: unknown }>;
   extraction?: ExtractionInfo;
   redirectProposal?: RedirectProposal;
   proposalDecision?: ProposalDecisionRecord;
@@ -204,11 +204,11 @@ export interface MessageMetadata {
     structure: {
       title: string;
       role: string;
-      children?: any[];
+      children?: unknown[];
     };
     notes?: string[];
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Message {
@@ -219,7 +219,7 @@ export interface Message {
   goalPreview?: string;
   awaitingConfirmation?: boolean;
   proposalType?: ProposalType;
-  commands?: Array<{ type: string; data: any }>;
+  commands?: Array<{ type: string; data: unknown }>;
   extraction?: ExtractionInfo;
   redirectProposal?: RedirectProposal;
   proposalDecision?: ProposalDecisionRecord;

@@ -94,7 +94,6 @@ const ChartTooltipContent = React.forwardRef<
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
     React.ComponentProps<"div"> & {
       active?: boolean;
-      payload?: any[];
       label?: string;
       hideLabel?: boolean;
       hideIndicator?: boolean;
@@ -233,7 +232,7 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-      payload?: any[];
+      payload?: React.ComponentProps<typeof RechartsPrimitive.Legend>["payload"];
       verticalAlign?: "top" | "bottom";
       hideIcon?: boolean;
       nameKey?: string;

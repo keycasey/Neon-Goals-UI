@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { EmailForm } from '@/components/auth/EmailForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { loginDemo } from './loginUtils';
+import type { User } from '@/types/goals';
 
 type AuthMode = 'oauth' | 'login' | 'register' | 'verify';
 
@@ -56,7 +57,7 @@ const Login = () => {
     });
   };
 
-  const handleAuthSuccess = async (authenticatedUser: any) => {
+  const handleAuthSuccess = async (authenticatedUser: User) => {
     setUser(authenticatedUser);
     setDemoMode(false);
     // Fetch goals after successful login
@@ -80,7 +81,7 @@ const Login = () => {
       setUser(result.user);
       setDemoMode(false);
       navigate('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Verification error:', error);
       alert('Invalid or expired verification token');
     }
@@ -91,7 +92,7 @@ const Login = () => {
       const result = await authService.resendVerification(verifyEmail);
       setVerifyToken(result.verificationToken);
       alert(`New verification token: ${result.verificationToken || 'Check your email'}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Resend error:', error);
       alert('Failed to resend verification email');
     }

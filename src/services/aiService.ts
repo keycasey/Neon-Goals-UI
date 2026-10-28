@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import type { ChatCommand } from '@/store/types';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -23,7 +24,7 @@ export interface StreamChunk {
   shouldEnterGoalCreation?: boolean;
   goalPreview?: string;
   awaitingConfirmation?: boolean;
-  commands?: Array<{ type: string; data: any }>;
+  commands?: ChatCommand[];
 }
 
 export const aiService = {

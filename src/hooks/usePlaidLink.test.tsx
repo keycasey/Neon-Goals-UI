@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlaidLinkOnSuccess } from 'react-plaid-link';
+import type { PlaidAccount } from '@/services/plaidService';
 
 const mocks = vi.hoisted(() => ({
   createLinkToken: vi.fn(),
@@ -14,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   fetchGoalForecasts: vi.fn(),
   capturedOnSuccess: null as PlaidLinkOnSuccess | null,
   isDemoMode: false,
-  plaidAccounts: [] as any[],
+  plaidAccounts: [] as PlaidAccount[],
 }));
 
 vi.mock('react-plaid-link', () => ({
@@ -125,14 +126,7 @@ describe('usePlaid link success', () => {
         institution: { name: 'Capital One', institution_id: 'ins_1' },
         accounts: [],
         link_session_id: 'session_1',
-        status: null,
-        account: {} as any,
-        account_id: null,
-        transfer_status: null,
-        wallet: null,
-        add_card: null,
-        public_token: 'public-token',
-      } as any);
+      });
     });
 
     expect(mocks.addPlaidAccounts).toHaveBeenCalledTimes(1);

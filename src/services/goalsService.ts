@@ -1,8 +1,25 @@
 import { apiClient } from './apiClient';
+import type { ActionGoal, FinanceGoal, Goal, GoalType, ItemGoal, ScrapeJob } from '@/types/goals';
+
+type BackendItemData = Partial<ItemGoal> & {
+  searchFilters?: Record<string, unknown>;
+  vehicleFilters?: Record<string, unknown>;
+};
+
+interface BackendGoal extends Record<string, unknown> {
+  id: string;
+  type: GoalType;
+  parentGoalId?: string;
+  subgoals?: Goal[];
+  itemData?: BackendItemData;
+  financeData?: Partial<FinanceGoal>;
+  actionData?: Partial<ActionGoal>;
+  searchFilters?: Record<string, unknown>;
+}
 
 // Transform backend response to frontend format
-function transformGoal(goal: any, subgoals: any[] = []): any {
-  if (!goal) return goal;
+function transformGoal(goal: BackendGoal, subgoals: Goal[] = []): Goal {
+  if (!goal) throw new Error('Goal response was empty');
 
   // Flatten nested data based on goal type
   if (goal.type === 'item' && goal.itemData) {
@@ -31,7 +48,7 @@ function transformGoal(goal: any, subgoals: any[] = []): any {
       searchFilters: itemDataSearchFilters,
       // Vehicle filters (JSONB field for flexible vehicle data)
       vehicleFilters: goal.itemData.vehicleFilters,
-    };
+    } as unknown as ItemGoal;
   }
 
   if (goal.type === 'finance' && goal.financeData) {
@@ -45,7 +62,7 @@ function transformGoal(goal: any, subgoals: any[] = []): any {
       currency: goal.financeData.currency,
       progressHistory: goal.financeData.progressHistory,
       lastSync: goal.financeData.lastSync,
-    };
+    } as unknown as FinanceGoal;
   }
 
   if (goal.type === 'action' && goal.actionData) {
@@ -54,24 +71,24 @@ function transformGoal(goal: any, subgoals: any[] = []): any {
       subgoals,
       completionPercentage: goal.actionData.completionPercentage,
       tasks: goal.actionData.tasks || [],
-    };
+    } as unknown as ActionGoal;
   }
 
   return {
     ...goal,
     subgoals,
-  };
+  } as unknown as Goal;
 }
 
 // Build parent-child relationships from flat array of goals
-function buildGoalRelationships(goals: any[]): any[] {
+function buildGoalRelationships(goals: BackendGoal[]): Goal[] {
   // Create a map for quick lookup
-  const goalsMap = new Map<string, any>();
-  const parentGoals: any[] = [];
-  const childGoals: any[] = [];
+  const goalsMap = new Map<string, BackendGoal>();
+  const parentGoals: BackendGoal[] = [];
+  const childGoals: BackendGoal[] = [];
 
   // Separate parent and child goals
-  goals.forEach((goal: any) => {
+  goals.forEach((goal) => {
     if (goal.parentGoalId) {
       childGoals.push(goal);
     } else {
@@ -106,56 +123,56 @@ export const goalsService = {
     if (filters?.type) params.append('type', filters.type);
     if (filters?.status) params.append('status', filters.status);
     const query = params.toString() ? `?${params}` : '';
-    const response = await apiClient.get(`/goals${query}`);
+    const response = await apiClient.get<BackendGoal[]>(`/goals${query}`);
     // Build parent-child relationships from flat array
     if (Array.isArray(response)) {
       return buildGoalRelationships(response);
     }
-    return transformGoal(response);
+    throw new Error('Goals response was not an array');
   },
 
   async getOne(id: string) {
-    const response = await apiClient.get(`/goals/${id}`);
+    const response = await apiClient.get<BackendGoal>(`/goals/${id}`);
     return transformGoal(response);
   },
 
-  async createItemGoal(data: any) {
-    const response = await apiClient.post('/goals/item', data);
+  async createItemGoal(data: unknown) {
+    const response = await apiClient.post<BackendGoal>('/goals/item', data);
     return transformGoal(response);
   },
 
-  async createFinanceGoal(data: any) {
-    const response = await apiClient.post('/goals/finance', data);
+  async createFinanceGoal(data: unknown) {
+    const response = await apiClient.post<BackendGoal>('/goals/finance', data);
     return transformGoal(response);
   },
 
-  async createActionGoal(data: any) {
-    const response = await apiClient.post('/goals/action', data);
+  async createActionGoal(data: unknown) {
+    const response = await apiClient.post<BackendGoal>('/goals/action', data);
     return transformGoal(response);
   },
 
-  async update(id: string, data: any) {
-    const response = await apiClient.patch(`/goals/${id}`, data);
+  async update(id: string, data: unknown) {
+    const response = await apiClient.patch<BackendGoal>(`/goals/${id}`, data);
     return transformGoal(response);
   },
 
-  async updateItemGoal(id: string, data: any) {
-    const response = await apiClient.patch(`/goals/${id}/item`, data);
+  async updateItemGoal(id: string, data: unknown) {
+    const response = await apiClient.patch<BackendGoal>(`/goals/${id}/item`, data);
     return transformGoal(response);
   },
 
-  async updateFinanceGoal(id: string, data: any) {
-    const response = await apiClient.patch(`/goals/${id}/finance`, data);
+  async updateFinanceGoal(id: string, data: unknown) {
+    const response = await apiClient.patch<BackendGoal>(`/goals/${id}/finance`, data);
     return transformGoal(response);
   },
 
-  async updateActionGoal(id: string, data: any) {
-    const response = await apiClient.patch(`/goals/${id}/action`, data);
+  async updateActionGoal(id: string, data: unknown) {
+    const response = await apiClient.patch<BackendGoal>(`/goals/${id}/action`, data);
     return transformGoal(response);
   },
 
   async archive(id: string) {
-    const response = await apiClient.patch(`/goals/${id}/archive`);
+    const response = await apiClient.patch<BackendGoal>(`/goals/${id}/archive`);
     return transformGoal(response);
   },
 
@@ -192,11 +209,11 @@ export const goalsService = {
 
   // Get scrape jobs for polling
   async getScrapeJobs(goalId: string) {
-    return apiClient.get(`/goals/${goalId}/scrape-jobs`);
+    return apiClient.get<ScrapeJob[]>(`/goals/${goalId}/scrape-jobs`);
   },
 
   // Update search filters for item goals
-  async updateSearchFilters(goalId: string, searchFilters: any) {
+  async updateSearchFilters(goalId: string, searchFilters: Record<string, unknown>) {
     return apiClient.patch(`/goals/${goalId}/item`, { searchFilters });
   },
 };

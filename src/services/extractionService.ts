@@ -48,6 +48,14 @@ export interface ExtractionResult {
   jobId?: string;
 }
 
+export interface ExtractionJob {
+  id: string;
+  url?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  result?: Omit<ExtractionResult, 'success' | 'jobId' | 'url'>;
+  error?: string;
+}
+
 export interface ExtractionGroup {
   groupId: string;
   urls: string[];
@@ -159,9 +167,9 @@ export async function getExtractionJobStatus(jobId: string): Promise<ExtractionP
 /**
  * Get all jobs in an extraction group
  */
-export async function getExtractionGroupJobs(groupId: string): Promise<any[]> {
+export async function getExtractionGroupJobs(groupId: string): Promise<ExtractionJob[]> {
   try {
-    const data = await apiClient.get<{ groupId: string; jobs: any[] }>(`/extraction/jobs/${groupId}`);
+    const data = await apiClient.get<{ groupId: string; jobs: ExtractionJob[] }>(`/extraction/jobs/${groupId}`);
     console.log('[extractionService] getExtractionGroupJobs response:', data);
     return data.jobs || [];
   } catch (error) {

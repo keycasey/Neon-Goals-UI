@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Archive, RefreshCw, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FinanceGoal } from '@/types/goals';
+import type { ActionGoal, FinanceGoal } from '@/types/goals';
 
 interface FinanceGoalCardProps {
   goal: FinanceGoal;
@@ -251,7 +251,7 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
                         initial={{ width: 0 }}
                         animate={{
                           width: `${Math.min(
-                            ((subgoal as any).currentBalance / (subgoal as any).targetBalance) * 100,
+                            ((subgoal as FinanceGoal).currentBalance / (subgoal as FinanceGoal).targetBalance) * 100,
                             100
                           )}%`
                         }}
@@ -259,7 +259,7 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
                       />
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      ${(subgoal as any).currentBalance?.toLocaleString() || 0} / ${(subgoal as any).targetBalance?.toLocaleString() || 0}
+                      ${(subgoal as FinanceGoal).currentBalance?.toLocaleString() || 0} / ${(subgoal as FinanceGoal).targetBalance?.toLocaleString() || 0}
                     </span>
                   </div>
                 )}
@@ -271,12 +271,12 @@ export const FinanceGoalCard: React.FC<FinanceGoalCardProps> = ({
                       <motion.div
                         className="h-full bg-gradient-neon"
                         initial={{ width: 0 }}
-                        animate={{ width: `${(subgoal as any).completionPercentage || 0}%` }}
+                        animate={{ width: `${(subgoal as ActionGoal).completionPercentage || 0}%` }}
                         transition={{ duration: 0.5 }}
                       />
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {(subgoal as any).tasks?.filter((t: any) => t.completed).length || 0}/{(subgoal as any).tasks?.length || 0}
+                      {(subgoal as ActionGoal).tasks?.filter((task) => task.completed).length || 0}/{(subgoal as ActionGoal).tasks?.length || 0}
                     </span>
                   </div>
                 )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pencil, Loader2, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ import type { ItemGoal } from '@/types/goals';
 
 interface ScrapeStatusCardProps {
   goal: ItemGoal;
-  onFiltersUpdate?: (filters: any) => void;
+  onFiltersUpdate?: (filters: Record<string, unknown>) => void;
   onRefresh?: () => Promise<void>;
   onScrapeComplete?: () => Promise<void>;
 }
@@ -59,8 +59,8 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
   const [isEditing, setIsEditing] = useState(false);
   const [filtersJson, setFiltersJson] = useState(JSON.stringify(goal.retailerFilters || {}, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [previousJobStatus, setPreviousJobStatus] = useState<ScrapeJobStatus | null>(null);
-  const [hasRefreshedAfterComplete, setHasRefreshedAfterComplete] = useState(false);
+  const previousJobStatusRef = useRef<ScrapeJobStatus | null>(null);
+  const hasRefreshedAfterCompleteRef = useRef(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const shouldStartPollingRef = useRef(false);
 
@@ -71,8 +71,8 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
 
     // Clear old jobs immediately to prevent showing stale completed status
     setScrapeJobs([]);
-    setHasRefreshedAfterComplete(false);
-    setPreviousJobStatus(null);
+    hasRefreshedAfterCompleteRef.current = false;
+    previousJobStatusRef.current = null;
 
     try {
       await onRefresh();
@@ -82,7 +82,7 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
   };
 
   // Fetch scrape jobs
-  const fetchScrapeJobs = async () => {
+  const fetchScrapeJobs = useCallback(async () => {
     try {
       const jobs = await goalsService.getScrapeJobs(goal.id);
       const jobsArray = Array.isArray(jobs) ? jobs : [jobs].filter(Boolean);
@@ -92,16 +92,16 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
       const currentStatus = latestJob?.status || (goal.statusBadge === 'pending_search' || goal.statusBadge === 'pending-search' ? 'pending' : 'completed');
 
       // Detect transition from active (pending/running) to completed
-      const wasActive = previousJobStatus === 'pending' || previousJobStatus === 'running';
+      const wasActive = previousJobStatusRef.current === 'pending' || previousJobStatusRef.current === 'running';
       const isNowComplete = currentStatus === 'completed' || currentStatus === 'failed';
 
-      if (wasActive && isNowComplete && !hasRefreshedAfterComplete && onScrapeComplete) {
+      if (wasActive && isNowComplete && !hasRefreshedAfterCompleteRef.current && onScrapeComplete) {
         console.log('[ScrapeStatusCard] Scrape completed, refreshing goal data...');
-        setHasRefreshedAfterComplete(true);
+        hasRefreshedAfterCompleteRef.current = true;
         await onScrapeComplete();
       }
 
-      setPreviousJobStatus(currentStatus);
+      previousJobStatusRef.current = currentStatus;
 
       // Don't stop polling based on hasActiveJobs - continue as long as statusBadge is pending_search
       // The polling useEffect will handle stopping when statusBadge changes
@@ -111,7 +111,7 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [goal.id, goal.statusBadge, onScrapeComplete]);
 
   // Start polling when goal is in searching state
   // Stop polling when status is candidates_found, in_stock, not_found, or any other terminal state
@@ -147,7 +147,7 @@ export const ScrapeStatusCard: React.FC<ScrapeStatusCardProps> = ({ goal, onFilt
       }
       setScrapeJobs([]);
     }
-  }, [goal.id, goal.statusBadge]);
+  }, [goal.statusBadge, fetchScrapeJobs]);
 
   // Handle save filters
   const handleSaveFilters = async () => {

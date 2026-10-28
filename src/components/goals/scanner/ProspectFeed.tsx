@@ -281,9 +281,9 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
         )}
 
         {/* View Button - only show for focused shortlist items (non-active but has swipe handler) */}
-        {!isActive && onSwipe && 'url' in candidate && (candidate as any).url && (
+        {!isActive && onSwipe && candidate.url && (
           <a
-            href={(candidate as any).url}
+            href={candidate.url}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}

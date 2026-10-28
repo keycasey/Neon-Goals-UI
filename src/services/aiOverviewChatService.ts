@@ -82,15 +82,14 @@ export const aiOverviewChatService = {
   /**
    * Confirm and execute pending commands
    */
-  async confirmCommands(commands: ChatCommand[]): Promise<any> {
+  async confirmCommands(commands: ChatCommand[]): Promise<unknown> {
     return apiClient.post('/ai/overview/chat/confirm-commands', { commands });
   },
 
   /**
    * Cancel pending commands
    */
-  async cancelCommands(reason?: string): Promise<any> {
+  async cancelCommands(reason?: string): Promise<unknown> {
     return apiClient.post('/ai/overview/chat/cancel-commands', { reason });
   },
 };
-

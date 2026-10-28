@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Check, X, AlertTriangle, Archive, Plus, ToggleLeft, Target, Wallet, Edit2, TrendingUp, FolderPlus, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatCommand } from '@/store/types';
+import type { Goal } from '@/types/goals';
 
 interface CommandPreviewProps {
   commands: ChatCommand[];
@@ -111,7 +112,7 @@ const getCommandDescription = (command: ChatCommand): string => {
   }
 };
 
-const renderCommandDetails = (command: ChatCommand, goals: any[]) => {
+const renderCommandDetails = (command: ChatCommand, goals: Goal[]) => {
   const goal = goals.find(g => g.id === command.goalId);
 
   switch (command.type) {

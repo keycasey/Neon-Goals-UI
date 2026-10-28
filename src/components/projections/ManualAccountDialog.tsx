@@ -21,11 +21,12 @@ const ACCOUNT_TYPES = [
   { value: 'property', label: 'Property' },
   { value: 'other', label: 'Other' },
 ] as const;
+type AccountType = (typeof ACCOUNT_TYPES)[number]['value'];
 
 export const ManualAccountDialog: React.FC<Props> = ({ open, onOpenChange }) => {
   const addManualAccount = useProjectionStore((s) => s.addManualAccount);
   const [name, setName] = useState('');
-  const [type, setType] = useState<'cash' | 'investment' | 'retirement' | 'property' | 'other'>('cash');
+  const [type, setType] = useState<AccountType>('cash');
   const [balance, setBalance] = useState('');
   const [isDebt, setIsDebt] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -88,7 +89,7 @@ export const ManualAccountDialog: React.FC<Props> = ({ open, onOpenChange }) => 
             <label className="text-xs text-muted-foreground">Type</label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as any)}
+              onChange={(e) => setType(e.target.value as AccountType)}
               className="w-full p-2 rounded-lg bg-muted/30 border border-border/30 text-sm text-foreground"
             >
               {ACCOUNT_TYPES.map((t) => (

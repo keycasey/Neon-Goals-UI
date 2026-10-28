@@ -40,7 +40,7 @@ export const aiGoalChatService = {
   /**
    * Confirm and execute pending commands for a goal chat
    */
-  async confirmCommands(goalId: string, commands: ChatCommand[]): Promise<any> {
+  async confirmCommands(goalId: string, commands: ChatCommand[]): Promise<unknown> {
     return apiClient.post(`/ai/goal-chat/${goalId}/confirm`, { commands });
   },
 };

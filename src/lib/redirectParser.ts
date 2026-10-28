@@ -41,7 +41,7 @@ const normalizeTarget = (value: unknown): RedirectTarget | null => {
 
   if (!value || typeof value !== 'object') return null;
 
-  const target = value as Record<string, any>;
+  const target = value as Record<string, unknown>;
 
   if (target.type === 'overview') {
     return { type: 'overview' };
@@ -73,7 +73,7 @@ const normalizeTarget = (value: unknown): RedirectTarget | null => {
 const normalizeRedirectProposal = (value: unknown): ParsedRedirect | null => {
   if (!value || typeof value !== 'object') return null;
 
-  const proposal = value as Record<string, any>;
+  const proposal = value as Record<string, unknown>;
   const target = normalizeTarget(proposal.target ?? proposal.redirectTarget ?? proposal.destination);
   if (!target) return null;
 
@@ -86,7 +86,7 @@ const normalizeRedirectProposal = (value: unknown): ParsedRedirect | null => {
     if (target.type === 'category') {
       label = CATEGORY_LABELS[target.categoryId] || target.categoryId;
     } else if (target.type === 'goal') {
-      label = proposal.goalTitle || 'Goal view';
+      label = typeof proposal.goalTitle === 'string' ? proposal.goalTitle : 'Goal view';
     } else {
       label = 'Overview';
     }

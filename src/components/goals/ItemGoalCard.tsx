@@ -38,7 +38,7 @@ export const ItemGoalCard: React.FC<ItemGoalCardProps> = ({
   const latestGoal = useMemo(() => {
     const found = goals.find(g => g.id === goal.id);
     return (found as ItemGoal) || goal;
-  }, [goals, goal.id]);
+  }, [goals, goal]);
 
   const hasValidSelection = useMemo(() => {
     if (!latestGoal.selectedCandidateId) return false;

@@ -4,6 +4,7 @@ import type { User, Settings } from '@/types/goals';
 import { authService } from '@/services/authService';
 import { usersService } from '@/services/usersService';
 import { useAppStore } from './useAppStore';
+import { ApiClientError } from '@/services/apiClient';
 
 const defaultSettings: Settings = {
   theme: 'miami-vice',
@@ -61,10 +62,10 @@ export const useAuthStore = create<AuthState>()(
               : state.settings,
             isLoading: false,
           }));
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to fetch user:', error);
-          const msg = error?.message || '';
-          const is401 = error?.response?.status === 401 || error?.status === 401 || msg.includes('Session expired');
+          const msg = error instanceof Error ? error.message : '';
+          const is401 = (error instanceof ApiClientError && error.status === 401) || msg.includes('Session expired');
           if (is401) {
             authService.logout();
             useAppStore.getState().resetUserScopedState();

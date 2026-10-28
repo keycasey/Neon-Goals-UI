@@ -83,9 +83,10 @@ const getGoalProgress = (goal: Goal): number => {
   switch (goal.type) {
     case 'item':
       return 0; // Items don't have progress, use 0 or based on status
-    case 'finance':
+    case 'finance': {
       const financeGoal = goal as FinanceGoal;
       return Math.min((financeGoal.currentBalance / financeGoal.targetBalance) * 100, 100);
+    }
     case 'action':
       return (goal as ActionGoal).completionPercentage;
     default:
@@ -137,20 +138,23 @@ export const GoalListCard: React.FC<GoalListCardProps> = ({
   // Get next task or relevant info
   const getNextInfo = () => {
     switch (goal.type) {
-      case 'item':
+      case 'item': {
         const itemGoal = goal as ItemGoal;
         if (hasValidSelection(itemGoal)) {
           return `Best price: $${itemGoal.bestPrice.toLocaleString()} at ${itemGoal.retailerName}`;
         }
         return 'Select an option to see details';
-      case 'finance':
+      }
+      case 'finance': {
         const financeGoal = goal as FinanceGoal;
         const remaining = financeGoal.targetBalance - financeGoal.currentBalance;
         return `$${remaining.toLocaleString()} to reach goal`;
-      case 'action':
+      }
+      case 'action': {
         const actionGoal = goal as ActionGoal;
         const nextTask = actionGoal.tasks.find(t => !t.completed);
         return nextTask ? `Next: ${nextTask.title}` : 'All tasks complete!';
+      }
       default:
         return '';
     }

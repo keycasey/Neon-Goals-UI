@@ -10,7 +10,7 @@
 export interface ChatCommand {
   type: 'ADD_TASK' | 'TOGGLE_TASK' | 'UPDATE_TITLE' | 'UPDATE_SEARCHTERM' | 'REFRESH_CANDIDATES' | 'ARCHIVE_GOAL' | 'CREATE_GOAL' | 'CREATE_SUBGOAL' | 'UPDATE_PROGRESS' | 'UPDATE_FILTERS' | 'REDIRECT_TO_CATEGORY' | 'REDIRECT_TO_GOAL' | 'REDIRECT_TO_OVERVIEW';
   goalId?: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 /**

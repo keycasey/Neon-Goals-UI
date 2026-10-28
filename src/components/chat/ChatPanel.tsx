@@ -20,18 +20,9 @@ import type { StructureProposal } from '@/components/chat/ProposalOutline';
 import { RedirectCard } from '@/components/chat/RedirectCard';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { normalizeChatState, normalizeExtraction } from '@/lib/chatMessageNormalizer';
 
 const toSafeText = (value: unknown): string => (typeof value === 'string' ? value : value == null ? '' : String(value));
-const normalizeExtraction = (value: any) => {
-  if (!value || typeof value !== 'object') return undefined;
-  if (typeof value.groupId !== 'string' || !value.groupId) return undefined;
-
-  return {
-    groupId: value.groupId,
-    urls: Array.isArray(value.urls) ? value.urls.filter((u: unknown): u is string => typeof u === 'string') : [],
-    streamUrl: typeof value.streamUrl === 'string' ? value.streamUrl : '',
-  };
-};
 
 interface ChatPanelProps {
   mode: 'creation' | 'goal';
@@ -57,7 +48,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const [input, setInput] = useState('');
   const [isExitingGoal, setIsExitingGoal] = useState(false);
   const [glowPulse, setGlowPulse] = useState(false);
-  const [previousPersona, setPreviousPersona] = useState<{ name: string; emoji: string } | null>(null);
   const hasMounted = React.useRef(false);
   const navigate = useNavigate();
   const setActiveCategory = useViewStore((state) => state.setActiveCategory);
@@ -201,30 +191,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   // For creation mode, use overviewChat (all) or categoryChats (items/finances/actions)
   // For goal mode, use goalChats
   const chat = useMemo(() => {
-    const normalizeChat = (chatState: any) => ({
-      messages: Array.isArray(chatState?.messages) ? chatState.messages : [],
-      isLoading: Boolean(chatState?.isLoading),
-    });
-
     if (mode === 'goal') {
-      const goalChat = normalizeChat(goalChats[goalId || '']);
+      const goalChat = normalizeChatState(goalChats[goalId || '']);
       console.log('[ChatPanel] goal chat for', goalId, ':', goalChat);
       return goalChat;
     }
     // Creation mode - use specialist chats
     if (activeCategory === 'all') {
-      return normalizeChat(overviewChat);
+      return normalizeChatState(overviewChat);
     }
     if (activeCategory === 'items') {
-      return normalizeChat(categoryChats.items);
+      return normalizeChatState(categoryChats.items);
     }
     if (activeCategory === 'finances') {
-      return normalizeChat(categoryChats.finances);
+      return normalizeChatState(categoryChats.finances);
     }
     if (activeCategory === 'actions') {
-      return normalizeChat(categoryChats.actions);
+      return normalizeChatState(categoryChats.actions);
     }
-    return normalizeChat(creationChat);
+    return normalizeChatState(creationChat);
   }, [mode, goalId, activeCategory, goalChats, overviewChat, categoryChats, creationChat]);
 
   // Track which extraction groups we've already sent follow-ups for (survives re-renders)
@@ -267,15 +252,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       case 'action': return { name: 'Personal Coach', emoji: '💪' };
       default: return { name: 'Assistant', emoji: '✨' };
     }
-  }, [mode, goal?.type, activeCategory]);
-
-  // Track persona changes for avatar animation
-  useEffect(() => {
-    if (previousPersona && (previousPersona.name !== persona.name || previousPersona.emoji !== persona.emoji)) {
-      // Persona changed - animation will be handled via key prop
-    }
-    setPreviousPersona(persona);
-  }, [persona.name, persona.emoji]); // Use stable primitive values as deps
+  }, [mode, goal, activeCategory]);
 
   // Trigger glow pulse on mount in creation mode
   useEffect(() => {
@@ -342,14 +319,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [chat.messages]);
-
-  // Scroll to bottom on initial mount (when chat is first loaded)
-  useEffect(() => {
-    if (chat.messages.length > 0) {
-      // Use immediate scroll on initial load, smooth for updates
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-    }
-  }, []); // Only run once on mount
 
   // Streaming state - check if any stream is active for current chat
   const isStreaming = useMemo(() => {

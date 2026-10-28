@@ -18,7 +18,7 @@ const buildStacks = (goals: Goal[]): { stacks: Record<string, Goal[]>; standalon
   const standalone: Goal[] = [];
 
   for (const g of goals) {
-    const sid = (g as any).stackId;
+    const sid = (g as Goal & { stackId?: string }).stackId;
     if (sid) {
       (byStack[sid] ??= []).push(g);
     } else {
@@ -30,7 +30,10 @@ const buildStacks = (goals: Goal[]): { stacks: Record<string, Goal[]>; standalon
   const validStacks: Record<string, Goal[]> = {};
   for (const [id, members] of Object.entries(byStack)) {
     if (members.length >= 2 && members.every(m => m.type === members[0].type)) {
-      validStacks[id] = members.sort((a, b) => ((a as any).stackOrder ?? 0) - ((b as any).stackOrder ?? 0));
+      validStacks[id] = members.sort(
+        (a, b) => ((a as Goal & { stackOrder?: number }).stackOrder ?? 0)
+          - ((b as Goal & { stackOrder?: number }).stackOrder ?? 0),
+      );
     } else {
       standalone.push(...members);
     }
@@ -154,7 +157,7 @@ export const GroupGoalDetail: React.FC<GroupGoalDetailProps> = ({ goal }) => {
   const { drillIntoGoal } = useViewStore();
   const [layout, setLayout] = useState<'grid' | 'list'>('grid');
 
-  const subgoals = goal.subgoals || [];
+  const subgoals = useMemo(() => goal.subgoals || [], [goal.subgoals]);
   const { stacks, standalone } = useMemo(() => buildStacks(subgoals), [subgoals]);
 
   // If only one stack and nothing else, flatten it (per spec)

@@ -39,7 +39,7 @@ export const browserUseService = {
   /**
    * Search for products and update an ItemGoal with the results
    */
-  async searchAndUpdateGoal(goalId: string, query?: string): Promise<any> {
+  async searchAndUpdateGoal(goalId: string, query?: string): Promise<unknown> {
     return apiClient.post(`/browser-use/search-and-update/${goalId}`, { query });
   },
 

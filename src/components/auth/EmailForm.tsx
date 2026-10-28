@@ -4,9 +4,10 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { authService } from '@/services/authService';
 import { validateEmail, validatePassword, getPasswordStrength } from '@/lib/validation';
 import { cn } from '@/lib/utils';
+import type { User } from '@/types/goals';
 
 interface EmailFormProps {
-  onSuccess?: (user: any) => void;
+  onSuccess?: (user: User) => void;
   onError?: (error: string) => void;
   onToggleMode?: () => void;
 }
@@ -69,8 +70,8 @@ export const EmailForm: React.FC<EmailFormProps> = ({
     try {
       const result = await authService.loginWithEmail(email, password);
       onSuccess?.(result.user);
-    } catch (error: any) {
-      const message = error.message || 'Login failed';
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Login failed';
       if (message.includes('email') || message.includes('password')) {
         setGeneralError('Invalid email or password');
       } else if (message.includes('locked')) {

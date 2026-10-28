@@ -14,12 +14,12 @@ const toSafeText = (value: unknown): string => {
   return String(value);
 };
 
-const isRecord = (value: unknown): value is Record<string, any> => {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 };
 
-export const normalizeExtraction = (value: any): ExtractionInfo | undefined => {
-  if (!value || typeof value !== 'object') return undefined;
+export const normalizeExtraction = (value: unknown): ExtractionInfo | undefined => {
+  if (!isRecord(value)) return undefined;
   if (typeof value.groupId !== 'string' || !value.groupId) return undefined;
 
   return {
@@ -153,7 +153,10 @@ const normalizeMessageMetadata = (value: unknown): MessageMetadata | undefined =
   }
 
   if (Array.isArray(value.commands)) {
-    metadata.commands = value.commands;
+    metadata.commands = value.commands
+      .filter(isRecord)
+      .filter((command) => typeof command.type === 'string')
+      .map((command) => ({ type: command.type as string, data: command.data }));
   }
 
   const extraction = normalizeExtraction(value.extraction);
@@ -164,38 +167,42 @@ const normalizeMessageMetadata = (value: unknown): MessageMetadata | undefined =
   return metadata;
 };
 
-export const normalizeChatMessage = (value: any): Message => {
-  const metadata = normalizeMessageMetadata(value?.metadata);
+export const normalizeChatMessage = (value: unknown): Message => {
+  const record = isRecord(value) ? value : {};
+  const metadata = normalizeMessageMetadata(record.metadata);
   const sourceMetadata = metadata ?? undefined;
 
   return {
-    id: typeof value?.id === 'string' ? value.id : String(value?.id ?? Date.now()),
-    role: value?.role === 'user' ? 'user' : 'assistant',
-    content: toSafeText(value?.content),
-    timestamp: new Date(value?.createdAt || value?.timestamp || Date.now()),
-    goalPreview: sourceMetadata?.goalPreview ?? value?.goalPreview,
-    awaitingConfirmation: sourceMetadata?.awaitingConfirmation ?? value?.awaitingConfirmation,
-    proposalType: sourceMetadata?.proposalType ?? value?.proposalType,
-    commands: sourceMetadata?.commands ?? value?.commands,
-    extraction: sourceMetadata?.extraction ?? normalizeExtraction(value?.extraction),
+    id: typeof record.id === 'string' ? record.id : String(record.id ?? Date.now()),
+    role: record.role === 'user' ? 'user' : 'assistant',
+    content: toSafeText(record.content),
+    timestamp: new Date(String(record.createdAt || record.timestamp || Date.now())),
+    goalPreview: sourceMetadata?.goalPreview ?? (typeof record.goalPreview === 'string' ? record.goalPreview : undefined),
+    awaitingConfirmation: sourceMetadata?.awaitingConfirmation ?? (typeof record.awaitingConfirmation === 'boolean' ? record.awaitingConfirmation : undefined),
+    proposalType: sourceMetadata?.proposalType ?? (typeof record.proposalType === 'string' ? record.proposalType as Message['proposalType'] : undefined),
+    commands: sourceMetadata?.commands,
+    extraction: sourceMetadata?.extraction ?? normalizeExtraction(record.extraction),
     redirectProposal:
       sourceMetadata?.redirectProposal ??
-      normalizeRedirectProposal(value?.redirectProposal ?? value?.redirect_target ?? value?.redirectTarget),
+      normalizeRedirectProposal(record.redirectProposal ?? record.redirect_target ?? record.redirectTarget),
     proposalDecision:
       sourceMetadata?.proposalDecision ??
-      normalizeProposalDecision(value?.proposalDecision ?? value?.decision),
+      normalizeProposalDecision(record.proposalDecision ?? record.decision),
     proposalHistory:
       sourceMetadata?.proposalHistory ??
-      (Array.isArray(value?.proposalHistory)
-        ? value.proposalHistory.filter((item: unknown): item is ProposalDecisionRecord => isRecord(item)).map((item: ProposalDecisionRecord) => ({ ...item }))
+      (Array.isArray(record.proposalHistory)
+        ? record.proposalHistory.filter((item: unknown): item is ProposalDecisionRecord => isRecord(item)).map((item: ProposalDecisionRecord) => ({ ...item }))
         : undefined),
-    proposalOutcome: sourceMetadata?.proposalOutcome ?? value?.proposalOutcome,
-    redirectOutcome: sourceMetadata?.redirectOutcome ?? value?.redirectOutcome,
+    proposalOutcome: sourceMetadata?.proposalOutcome ?? (typeof record.proposalOutcome === 'string' ? record.proposalOutcome as Message['proposalOutcome'] : undefined),
+    redirectOutcome: sourceMetadata?.redirectOutcome ?? (typeof record.redirectOutcome === 'string' ? record.redirectOutcome as Message['redirectOutcome'] : undefined),
     metadata: sourceMetadata,
   };
 };
 
-export const normalizeChatState = (chat: any): ChatState => ({
-  messages: Array.isArray(chat?.messages) ? chat.messages.map(normalizeChatMessage) : [],
-  isLoading: typeof chat?.isLoading === 'boolean' ? chat.isLoading : false,
-});
+export const normalizeChatState = (chat: unknown): ChatState => {
+  const record = isRecord(chat) ? chat : {};
+  return {
+    messages: Array.isArray(record.messages) ? record.messages.map(normalizeChatMessage) : [],
+    isLoading: typeof record.isLoading === 'boolean' ? record.isLoading : false,
+  };
+};

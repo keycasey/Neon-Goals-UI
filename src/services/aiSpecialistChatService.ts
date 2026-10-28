@@ -1,19 +1,23 @@
 import { apiClient } from './apiClient';
+import type { Goal } from '@/types/goals';
+import type { ChatCommand } from '@/store/types';
 
 export type CategoryId = 'items' | 'finances' | 'actions';
 
 export interface SpecialistChatResponse {
   content: string;
+  awaitingConfirmation?: boolean;
+  proposalType?: 'confirm_edit_cancel' | 'accept_decline';
   commands?: Array<{
     type: string;
-    data: any;
+    data: Record<string, unknown>;
   }>;
   executedCommands?: Array<{
     type: string;
     success: boolean;
     goalId?: string;
     taskId?: string;
-    goal?: any;
+    goal?: Goal;
     error?: string;
   }>;
 }
@@ -44,7 +48,7 @@ export const aiSpecialistChatService = {
   /**
    * Confirm and execute pending commands
    */
-  async confirmCommands(categoryId: CategoryId, commands: any[]): Promise<any> {
+  async confirmCommands(categoryId: CategoryId, commands: ChatCommand[]): Promise<unknown> {
     return apiClient.post(`/ai/specialist/category/${categoryId}/chat/confirm-commands`, { commands });
   },
 

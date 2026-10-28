@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, CreditCard, Clock, Tag, Building2, AlertCircle, RefreshCw, Trash2, TimerReset } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -77,18 +77,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     account.accountType.toLowerCase() === 'investment' ||
     account.accountType.toLowerCase() === 'brokerage';
 
-  useEffect(() => {
-    if (isOpen && account.id) {
-      fetchData();
-    }
-    // Reset delete confirmation when modal closes
-    if (!isOpen) {
-      setShowDeleteConfirm(false);
-      setIsDeleting(false);
-    }
-  }, [isOpen, account.id]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -121,7 +110,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [account.id, isInvestmentAccount]);
+
+  useEffect(() => {
+    if (isOpen && account.id) {
+      void fetchData();
+    }
+    // Reset delete confirmation when modal closes
+    if (!isOpen) {
+      setShowDeleteConfirm(false);
+      setIsDeleting(false);
+    }
+  }, [isOpen, account.id, fetchData]);
 
   const isDebt = account.isDebt || ['credit', 'loan'].includes(account.accountType.toLowerCase()) ||
     ['credit_card', 'auto', 'mortgage', 'student', 'loan'].includes(account.accountSubtype?.toLowerCase() || '');

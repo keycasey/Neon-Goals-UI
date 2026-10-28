@@ -1,12 +1,12 @@
 import { apiClient } from './apiClient';
-import type { SettingsOptions } from '@/types/goals';
+import type { Settings, SettingsOptions } from '@/types/goals';
 
 export const usersService = {
   async getProfile() {
     return apiClient.get('/users/me');
   },
 
-  async updateSettings(settings: any) {
+  async updateSettings(settings: Partial<Settings>) {
     return apiClient.patch('/users/me/settings', settings);
   },
 

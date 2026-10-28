@@ -130,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
       // Explicitly reset when in goal view
       setIsVaporizing(false);
     }
-  }, [isExitingGoalView, isInGoalView]);
+  }, [isExitingGoalView, isEnteringGoalView, isInGoalView]);
 
   // Check if we're on a goal URL route (vs modal overlay)
   const isOnGoalRoute = location.pathname.startsWith('/goals/');

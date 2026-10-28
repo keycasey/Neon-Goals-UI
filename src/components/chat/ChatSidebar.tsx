@@ -30,7 +30,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   // Debug: Track component mounts
   useEffect(() => {
-    console.log('[ChatSidebar] MOUNTED', { mode, goalId, isMinimized });
+    console.log('[ChatSidebar] MOUNTED');
     return () => {
       console.log('[ChatSidebar] UNMOUNTED');
     };

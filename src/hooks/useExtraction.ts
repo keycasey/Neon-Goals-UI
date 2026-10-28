@@ -186,11 +186,11 @@ export function useExtraction() {
         if (!jobs || jobs.length === 0) return;
 
         const allComplete = jobs.every(
-          (job: any) => job.status === 'completed' || job.status === 'failed'
+          (job) => job.status === 'completed' || job.status === 'failed'
         );
 
         if (allComplete) {
-          const results: ExtractionResult[] = jobs.map((job: any) => ({
+          const results: ExtractionResult[] = jobs.map((job) => ({
             success: job.status === 'completed',
             jobId: job.id,
             url: job.url,

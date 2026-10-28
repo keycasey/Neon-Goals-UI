@@ -92,7 +92,7 @@ export const usePlaid = (): UsePlaidLinkReturn => {
       // Set pending accounts from metadata immediately (before the slow token exchange)
       const institutionName = metadata.institution?.name || 'Bank';
       setPendingAccounts(
-        (metadata.accounts || []).map((a: any) => ({
+        (metadata.accounts || []).map((a) => ({
           name: a.name,
           mask: a.mask || '',
           type: a.type || 'depository',

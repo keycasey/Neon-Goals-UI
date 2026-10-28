@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ChatState, Message, Goal } from '@/types/goals';
+import type { ChatState, Message, Goal, MessageMetadata } from '@/types/goals';
 import type { ChatCommand, PendingCommandsState } from './types';
 import { chatsService } from '@/services/chatsService';
 import { aiGoalCreationService } from '@/services/aiGoalCreationService';
@@ -11,7 +11,23 @@ import { useGoalsStore } from './useGoalsStore';
 import { useAuthStore } from './useAuthStore';
 import { normalizeChatMessage, normalizeChatState } from '@/lib/chatMessageNormalizer';
 
-const normalizeGoalChats = (goalChats: any): Record<string, ChatState> => {
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const normalizeCommands = (value: unknown): ChatCommand[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isRecord).flatMap((command) => (
+    typeof command.type === 'string' && isRecord(command.data)
+      ? [{ type: command.type as ChatCommand['type'], goalId: typeof command.goalId === 'string' ? command.goalId : undefined, data: command.data }]
+      : []
+  ));
+};
+
+type ChatStreamChunk = MessageMetadata & {
+  content?: string;
+  done?: boolean;
+};
+
+const normalizeGoalChats = (goalChats: unknown): Record<string, ChatState> => {
   if (!goalChats || typeof goalChats !== 'object') return {};
 
   return Object.entries(goalChats).reduce((acc, [goalId, chat]) => {
@@ -20,21 +36,24 @@ const normalizeGoalChats = (goalChats: any): Record<string, ChatState> => {
   }, {} as Record<string, ChatState>);
 };
 
-const normalizeCategoryChats = (categoryChats: any) => ({
-  items: categoryChats?.items ? normalizeChatState(categoryChats.items) : null,
-  finances: categoryChats?.finances ? normalizeChatState(categoryChats.finances) : null,
-  actions: categoryChats?.actions ? normalizeChatState(categoryChats.actions) : null,
-});
+const normalizeCategoryChats = (categoryChats: unknown) => {
+  const record = isRecord(categoryChats) ? categoryChats : {};
+  return {
+    items: record.items ? normalizeChatState(record.items) : null,
+    finances: record.finances ? normalizeChatState(record.finances) : null,
+    actions: record.actions ? normalizeChatState(record.actions) : null,
+  };
+};
 
-const normalizePendingCommands = (pending: any): PendingCommandsState | null => {
-  if (!pending || typeof pending !== 'object') return null;
+const normalizePendingCommands = (pending: unknown): PendingCommandsState | null => {
+  if (!isRecord(pending)) return null;
 
   const chatId = typeof pending.chatId === 'string' ? pending.chatId : '';
   if (!chatId) return null;
 
   return {
     chatId,
-    commands: Array.isArray(pending.commands) ? pending.commands : [],
+    commands: normalizeCommands(pending.commands),
     timestamp: typeof pending.timestamp === 'number' ? pending.timestamp : Date.now(),
   };
 };
@@ -95,13 +114,14 @@ const toStringSet = (value: unknown): Set<string> => {
   return new Set<string>();
 };
 
-const mergeAssistantMetadata = (message: Message, content: string, metadata: any): Message => {
+const mergeAssistantMetadata = (message: Message, content: string, metadata: unknown): Message => {
+  const metadataRecord = isRecord(metadata) ? metadata : {};
   return normalizeChatMessage({
     ...message,
     content,
     metadata: {
       ...(message.metadata || {}),
-      ...(metadata || {}),
+      ...metadataRecord,
     },
   });
 };
@@ -259,7 +279,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
           timestamp: new Date(),
           goalPreview: response.goalPreview,
           awaitingConfirmation: response.awaitingConfirmation,
-          proposalType: (response as any).proposalType,
+          proposalType: response.proposalType,
         };
 
         set((state) => ({
@@ -316,7 +336,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
         try {
           // Stream the response using appropriate chat service
           let fullContent = '';
-          let finalChunk: any = {};
+          let finalChunk: ChatStreamChunk = {};
 
           const streamResult = aiOverviewChatService.chatStream({ message: content });
           await (async () => {
@@ -465,7 +485,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
     try {
       let fullContent = '';
-      let finalChunk: any = {};
+      let finalChunk: ChatStreamChunk = {};
 
       const stream = await aiGoalChatService.chatStream(goalId, { message: content });
       const reader = stream.getReader();
@@ -480,7 +500,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
         for (const line of sseLines) {
           try {
-            const chunk = JSON.parse(line.slice(6));
+            const chunk = JSON.parse(line.slice(6)) as ChatStreamChunk;
             fullContent += chunk.content || '';
 
             if (chunk.done) {
@@ -581,10 +601,10 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
           activeStreams: new Set([...state.activeStreams].filter(id => id !== streamId)),
         }));
 
-        if ((response as any).awaitingConfirmation) {
+        if (response.awaitingConfirmation) {
           get().setLatestProposal(`goal-${goalId}`, assistantMessageId);
         }
-        if ((response as any).awaitingConfirmation && response.commands?.length > 0) {
+        if (response.awaitingConfirmation && response.commands?.length > 0) {
           set({
             pendingCommands: {
               chatId: `goal-${goalId}`,
@@ -618,10 +638,10 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
   fetchOverviewChat: async () => {
     try {
-      const chat = await chatsService.getOverviewChat() as any;
+      const chat = await chatsService.getOverviewChat();
           set({
             overviewChat: {
-              messages: ((chat?.messages as any[]) || []).map((m: any) => normalizeChatMessage(m)),
+              ...normalizeChatState(chat),
               isLoading: false,
             },
           });
@@ -672,7 +692,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
     try {
       let fullContent = '';
-      let finalChunk: any = {};
+      let finalChunk: ChatStreamChunk = {};
 
       for await (const chunk of aiOverviewChatService.chatStream({ message: content })) {
         fullContent += chunk.content;
@@ -699,7 +719,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
       }));
 
       // Handle commands from response
-      const overviewExtractionGroupId = (finalChunk as any)?.extraction?.groupId;
+      const overviewExtractionGroupId = finalChunk.extraction?.groupId;
       if (typeof overviewExtractionGroupId === 'string' && overviewExtractionGroupId) {
         get().setExtractionActive(overviewExtractionGroupId, true);
       }
@@ -763,12 +783,12 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
   fetchCategoryChat: async (categoryId: 'items' | 'finances' | 'actions') => {
     try {
-      const chat = await chatsService.getCategoryChat(categoryId) as any;
+      const chat = await chatsService.getCategoryChat(categoryId);
           set((state) => ({
             categoryChats: {
               ...state.categoryChats,
               [categoryId]: {
-                messages: ((chat?.messages as any[]) || []).map((m: any) => normalizeChatMessage(m)),
+                ...normalizeChatState(chat),
                 isLoading: false,
               },
             },
@@ -829,7 +849,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
     try {
       let fullContent = '';
-      let finalChunk: any = {};
+      let finalChunk: ChatStreamChunk = {};
 
       const stream = await aiSpecialistChatService.chatStream(categoryId, content);
       const reader = stream.getReader();
@@ -844,7 +864,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
         for (const line of sseLines) {
           try {
-            const chunk = JSON.parse(line.slice(6));
+            const chunk = JSON.parse(line.slice(6)) as ChatStreamChunk;
             fullContent += chunk.content || '';
 
             if (chunk.done) {
@@ -894,7 +914,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
       }));
 
       // Handle commands from response
-      const categoryExtractionGroupId = (finalChunk as any)?.extraction?.groupId;
+      const categoryExtractionGroupId = finalChunk.extraction?.groupId;
       if (typeof categoryExtractionGroupId === 'string' && categoryExtractionGroupId) {
         get().setExtractionActive(categoryExtractionGroupId, true);
       }
@@ -964,12 +984,12 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
   fetchGoalChat: async (goalId: string) => {
     try {
-      const chat = await chatsService.getGoalChat(goalId) as any;
+      const chat = await chatsService.getGoalChat(goalId);
       set((state) => ({
         goalChats: {
           ...state.goalChats,
           [goalId]: {
-            messages: ((chat?.messages as any[]) || []).map((m: any) => normalizeChatMessage(m)),
+            ...normalizeChatState(chat),
             isLoading: false,
           },
         },
@@ -1029,7 +1049,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
 
     try {
       if (chatId === 'overview' || chatId === 'creation') {
-        await aiOverviewChatService.confirmCommands(commands as any);
+        await aiOverviewChatService.confirmCommands(commands);
       } else if (chatId?.startsWith('goal-')) {
         const goalId = chatId.replace('goal-', '');
         await aiGoalChatService.confirmCommands(goalId, commands);
@@ -1448,7 +1468,7 @@ export const useChatStore = create<ChatStoreState>()((set, get) => ({
         break;
       case 'UPDATE_SEARCHTERM':
         if (goalId) {
-          await goalsService.update(goalId, { searchTerm: data.searchTerm } as any);
+          await goalsService.update(goalId, { searchTerm: data.searchTerm });
         }
         break;
       case 'REFRESH_CANDIDATES':

@@ -9,6 +9,9 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export interface MockChatResponse {
   content: string;
   commands: ChatCommand[];
+  goalPreview?: string;
+  awaitingConfirmation?: boolean;
+  proposalType?: 'confirm_edit_cancel' | 'accept_decline';
 }
 
 export interface MockStreamChunk {
@@ -20,7 +23,7 @@ export interface MockStreamChunk {
 }
 
 // Get a mock subgoal from existing mockGoals data
-const getMockSubgoal = (index: number): Record<string, any> => {
+const getMockSubgoal = (index: number): Record<string, unknown> => {
   const baseGoal = mockGoals[index % mockGoals.length];
 
   // Return appropriate fields based on goal type

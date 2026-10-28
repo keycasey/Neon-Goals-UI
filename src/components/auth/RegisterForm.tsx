@@ -10,9 +10,10 @@ import {
   getPasswordStrength,
 } from '@/lib/validation';
 import { cn } from '@/lib/utils';
+import type { User } from '@/types/goals';
 
 interface RegisterFormProps {
-  onSuccess?: (user: any) => void;
+  onSuccess?: (user: User) => void;
   onError?: (error: string) => void;
   onToggleMode?: () => void;
   showVerificationInfo?: (email: string, verificationToken?: string) => void;
@@ -122,8 +123,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const result = await authService.register(email, password, name);
       // Show verification info instead of logging in immediately
       showVerificationInfo?.(email, result.verificationToken);
-    } catch (error: any) {
-      const message = error.message || 'Registration failed';
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Registration failed';
       if (message.includes('exists')) {
         setGeneralError('An account with this email already exists');
       } else if (message.includes('password')) {
@@ -143,7 +144,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     { label: 'Uppercase letter', valid: /[A-Z]/.test(password) },
     { label: 'Lowercase letter', valid: /[a-z]/.test(password) },
     { label: 'Number', valid: /\d/.test(password) },
-    { label: 'Special character', valid: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+    { label: 'Special character', valid: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password) },
   ];
 
   return (

@@ -131,7 +131,7 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' }, includeAuth);
   }
 
-  async post<T>(endpoint: string, data?: any, includeAuth = true): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown, includeAuth = true): Promise<T> {
     return this.request<T>(
       endpoint,
       {
@@ -142,7 +142,7 @@ class ApiClient {
     );
   }
 
-  async patch<T>(endpoint: string, data?: any, includeAuth = true): Promise<T> {
+  async patch<T>(endpoint: string, data?: unknown, includeAuth = true): Promise<T> {
     return this.request<T>(
       endpoint,
       {
@@ -153,7 +153,7 @@ class ApiClient {
     );
   }
 
-  async put<T>(endpoint: string, data?: any, includeAuth = true): Promise<T> {
+  async put<T>(endpoint: string, data?: unknown, includeAuth = true): Promise<T> {
     return this.request<T>(
       endpoint,
       {
@@ -172,7 +172,7 @@ class ApiClient {
    * Streaming POST request for Server-Sent Events (SSE)
    * Returns a readable stream that emits SSE data
    */
-  async postStream(endpoint: string, data?: any, includeAuth = true): Promise<ReadableStream> {
+  async postStream(endpoint: string, data?: unknown, includeAuth = true): Promise<ReadableStream> {
     // Prepend /api if not already present
     const apiEndpoint = endpoint.startsWith('/api')
       ? endpoint

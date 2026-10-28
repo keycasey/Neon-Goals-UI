@@ -9,11 +9,14 @@ import type {
   Settings,
   ChatState,
   Message,
+  MessageMetadata,
+  GoalType,
   GoalCategory,
   ViewMode
 } from '@/types/goals';
 import type { PlaidAccount } from '@/services/plaidService';
 import { authService } from '@/services/authService';
+import { ApiClientError } from '@/services/apiClient';
 import { goalsService } from '@/services/goalsService';
 import { usersService } from '@/services/usersService';
 import { chatsService } from '@/services/chatsService';
@@ -25,12 +28,17 @@ import { mockOverviewChatService } from '@/services/mockChatService';
 import { mockGoalChatService } from '@/services/mockChatService';
 import { browserUseService } from '@/services/browserUseService';
 import { plaidService } from '@/services/plaidService';
-import { normalizeChatMessage } from '@/lib/chatMessageNormalizer';
+import { normalizeChatMessage, normalizeChatState } from '@/lib/chatMessageNormalizer';
 import { resetUserScopedState as resetOtherUserScopedState } from './resetUserScopedState';
 
 // Re-export types from ./types for backward compatibility
 export type { ChatCommand, PendingCommandsState } from './types';
 import type { ChatCommand, PendingCommandsState } from './types';
+
+type LegacyStreamChunk = MessageMetadata & {
+  content?: string;
+  done?: boolean;
+};
 
 interface AppState {
   // View state
@@ -134,8 +142,8 @@ interface AppState {
   addTask: (goalId: string, title: string) => void;
 
   // Subgoal actions
-  createSubgoal: (data: any, parentGoalId: string) => Promise<void>;
-  updateGoalProgress: (goalId: string, data: any) => Promise<void>;
+  createSubgoal: (data: { type: GoalType; [key: string]: unknown }, parentGoalId: string) => Promise<void>;
+  updateGoalProgress: (goalId: string, data: Record<string, unknown>) => Promise<void>;
 
   // Finance actions
   syncFinanceGoal: (goalId: string) => void;
@@ -437,7 +445,7 @@ export const useAppStore = create<AppState>()(
               timestamp: new Date(),
               goalPreview: response.goalPreview,
               awaitingConfirmation: response.awaitingConfirmation,
-              proposalType: (response as any).proposalType,
+              proposalType: response.proposalType,
             };
 
             set((state) => ({
@@ -498,8 +506,8 @@ export const useAppStore = create<AppState>()(
             try {
               // Stream the response using appropriate chat service
               let fullContent = '';
-              let commands: any[] = [];
-              let finalChunk: any = {};
+              let commands: ChatCommand[] = [];
+              let finalChunk: LegacyStreamChunk = {};
 
               // For demo mode, use non-streaming mock service to avoid generator complexity
               console.log('[sendCreationMessage] isDemoMode:', get().isDemoMode, 'captured isDemo:', isDemo);
@@ -704,9 +712,9 @@ export const useAppStore = create<AppState>()(
             role: 'assistant',
             content: response.content,
             timestamp: new Date(),
-            goalPreview: (response as any).goalPreview,
-            awaitingConfirmation: (response as any).awaitingConfirmation,
-            proposalType: (response as any).proposalType,
+            goalPreview: response.goalPreview,
+            awaitingConfirmation: response.awaitingConfirmation,
+            proposalType: response.proposalType,
             commands: response.commands,
           };
 
@@ -721,12 +729,12 @@ export const useAppStore = create<AppState>()(
           }));
 
           // Track latest proposal
-          if ((response as any).awaitingConfirmation) {
+          if (response.awaitingConfirmation) {
             get().setLatestProposal(`goal-${goalId}`, assistantMessage.id);
           }
 
           // Store pending commands for user confirmation (goal chat)
-          if ((response as any).awaitingConfirmation && response.commands?.length > 0) {
+          if (response.awaitingConfirmation && response.commands?.length > 0) {
             set({
               pendingCommands: {
                 chatId: `goal-${goalId}`,
@@ -1001,7 +1009,7 @@ export const useAppStore = create<AppState>()(
           // Revert status on error
           set((state) => ({
             goals: state.goals.map((goal) =>
-              goal.id === goalId && (goal as any).statusBadge === 'pending_search'
+              goal.id === goalId && (goal as ItemGoal).statusBadge === 'pending_search'
                 ? { ...goal, statusBadge: 'in_stock' }
                 : goal
             ),
@@ -1102,7 +1110,7 @@ export const useAppStore = create<AppState>()(
           if (!isDemo) {
             // Production mode: call the appropriate confirm endpoint
             if (chatId === 'overview' || chatId === 'creation') {
-              await aiOverviewChatService.confirmCommands(commands as any);
+              await aiOverviewChatService.confirmCommands(commands);
             } else if (chatId?.startsWith('goal-')) {
               // Goal chat: extract goalId from chatId (format: "goal-{goalId}")
               const goalId = chatId.replace('goal-', '');
@@ -1340,10 +1348,10 @@ export const useAppStore = create<AppState>()(
           }
 
           // Production mode: fetch from API
-          const chat = await chatsService.getOverviewChat() as any;
+          const chat = await chatsService.getOverviewChat();
           set({
             overviewChat: {
-              messages: ((chat?.messages as any[]) || []).map((m: any) => normalizeChatMessage(m)),
+              ...normalizeChatState(chat),
               isLoading: false,
             },
           });
@@ -1408,9 +1416,9 @@ export const useAppStore = create<AppState>()(
                     ? {
                         ...msg,
                         content: response.content,
-                        goalPreview: (response as any).goalPreview,
-                        awaitingConfirmation: (response as any).awaitingConfirmation,
-                        proposalType: (response as any).proposalType,
+                        goalPreview: response.goalPreview,
+                        awaitingConfirmation: response.awaitingConfirmation,
+                        proposalType: response.proposalType,
                         commands: response.commands,
                       }
                     : msg
@@ -1443,7 +1451,7 @@ export const useAppStore = create<AppState>()(
 
           // Production mode: use streaming service
           let fullContent = '';
-          let finalChunk: any = {};
+          let finalChunk: LegacyStreamChunk = {};
 
           for await (const chunk of aiOverviewChatService.chatStream({ message: content })) {
             fullContent += chunk.content;
@@ -1461,10 +1469,10 @@ export const useAppStore = create<AppState>()(
                         ...msg,
                         content: fullContent,
                         ...(chunk.done && {
-                          goalPreview: (chunk as any).goalPreview,
-                          awaitingConfirmation: (chunk as any).awaitingConfirmation,
-                          proposalType: (chunk as any).proposalType,
-                          extraction: (chunk as any).extraction,
+                          goalPreview: chunk.goalPreview,
+                          awaitingConfirmation: chunk.awaitingConfirmation,
+                          proposalType: chunk.proposalType,
+                          extraction: chunk.extraction,
                         }),
                       }
                     : msg
@@ -1551,12 +1559,12 @@ export const useAppStore = create<AppState>()(
           }
 
           // Production mode: fetch from API
-          const chat = await chatsService.getCategoryChat(categoryId) as any;
+          const chat = await chatsService.getCategoryChat(categoryId);
           set((state) => ({
             categoryChats: {
               ...state.categoryChats,
               [categoryId]: {
-                messages: ((chat?.messages as any[]) || []).map((m: any) => normalizeChatMessage(m)),
+                ...normalizeChatState(chat),
                 isLoading: false,
               },
             },
@@ -1598,12 +1606,10 @@ export const useAppStore = create<AppState>()(
           }
 
           // Production mode: fetch from API
-          const chat = await chatsService.getGoalChat(goalId) as any;
+          const chat = await chatsService.getGoalChat(goalId);
           console.log('[fetchGoalChat] Received chat data:', chat);
 
-          const mappedMessages: Message[] = ((chat?.messages as any[]) || []).map((m: any): Message => ({
-            ...normalizeChatMessage(m),
-          }));
+          const mappedMessages = normalizeChatState(chat).messages;
           console.log('[fetchGoalChat] Mapped messages:', mappedMessages);
 
           set((state) => ({
@@ -1689,9 +1695,9 @@ export const useAppStore = create<AppState>()(
                       ? {
                           ...msg,
                           content: response.content,
-                          goalPreview: (response as any).goalPreview,
-                          awaitingConfirmation: (response as any).awaitingConfirmation,
-                          proposalType: (response as any).proposalType,
+                          goalPreview: response.goalPreview,
+                          awaitingConfirmation: response.awaitingConfirmation,
+                          proposalType: response.proposalType,
                           commands: response.commands,
                         }
                       : msg
@@ -1706,7 +1712,7 @@ export const useAppStore = create<AppState>()(
 
           // Production mode: use streaming service
           let fullContent = '';
-          let finalChunk: any = {};
+          let finalChunk: LegacyStreamChunk = {};
 
           const stream = await aiSpecialistChatService.chatStream(categoryId, content);
           const reader = stream.getReader();
@@ -1721,7 +1727,7 @@ export const useAppStore = create<AppState>()(
             
             for (const line of sseLines) {
               try {
-                const chunk = JSON.parse(line.slice(6));
+                const chunk = JSON.parse(line.slice(6)) as LegacyStreamChunk;
                 fullContent += chunk.content || '';
                 
                 if (chunk.done) {
@@ -1760,9 +1766,9 @@ export const useAppStore = create<AppState>()(
                       ? {
                           ...msg,
                           content: fullContent,
-                          goalPreview: (finalChunk as any).goalPreview,
-                          awaitingConfirmation: (finalChunk as any).awaitingConfirmation,
-                          proposalType: (finalChunk as any).proposalType,
+                          goalPreview: finalChunk.goalPreview,
+                          awaitingConfirmation: finalChunk.awaitingConfirmation,
+                          proposalType: finalChunk.proposalType,
                           commands: finalChunk.commands,
                         }
                       : msg
@@ -1956,7 +1962,7 @@ export const useAppStore = create<AppState>()(
             break;
           case 'UPDATE_SEARCHTERM':
             // Update searchTerm - backend will regenerate retailerFilters
-            await get().updateGoal(goalId, { searchTerm: data.searchTerm } as any);
+            await get().updateGoal(goalId, { searchTerm: data.searchTerm } as Partial<ItemGoal>);
             break;
           case 'REFRESH_CANDIDATES':
             // Refresh candidates - queue scraping job (uses accept/decline proposal type)
@@ -2053,10 +2059,10 @@ export const useAppStore = create<AppState>()(
           set({ isLoading: true, error: null });
           const user = await authService.getProfile();
           set({ user, isLoading: false });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to fetch user:', error);
-          const msg = error?.message || '';
-          const is401 = error?.response?.status === 401 || error?.status === 401 || msg.includes('Session expired');
+          const msg = error instanceof Error ? error.message : '';
+          const is401 = (error instanceof ApiClientError && error.status === 401) || msg.includes('Session expired');
           if (is401) {
             // Token expired — clear all user-scoped state and redirect to login
             authService.logout();
@@ -2079,10 +2085,10 @@ export const useAppStore = create<AppState>()(
           const filters = category !== 'all' ? { type: category } : undefined;
           const goals = await goalsService.getAll(filters);
           set({ goals, isLoading: false, goalsVersion: get().goalsVersion + 1 });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to fetch goals:', error);
           // Clear state on 401 so a previous user's data cannot bleed into the next session
-          if (error?.response?.status === 401 || error?.status === 401) {
+          if (error instanceof ApiClientError && error.status === 401) {
             console.log('⚠️ Authentication failed - clearing user-scoped state');
             authService.logout();
             get().resetUserScopedState();

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { PlaidAccount } from '@/services/plaidService';
-import type { FinanceGoal } from '@/types/goals';
+import type { FinanceGoal, Goal } from '@/types/goals';
 import { plaidService } from '@/services/plaidService';
 import { sanitizePersistedPlaidAccounts } from '@/lib/sanitizePlaidAccounts';
 
@@ -33,7 +33,7 @@ interface FinanceState {
   addPlaidAccounts: (accounts: PlaidAccount[]) => void;
   syncPlaidAccount: (accountId: string) => Promise<void>;
   removePlaidAccount: (accountId: string) => Promise<void>;
-  syncFinanceGoal: (goalId: string, goals: any[]) => void;
+  syncFinanceGoal: (goalId: string, goals: Goal[]) => void;
 }
 
 export const useFinanceStore = create<FinanceState>()((set, get) => ({
@@ -122,7 +122,7 @@ export const useFinanceStore = create<FinanceState>()((set, get) => ({
 
   syncFinanceGoal: (goalId, goals) => {
     // Find the finance goal and update its balance
-    const goal = goals.find((g: any) => g.id === goalId && g.type === 'finance') as FinanceGoal | undefined;
+    const goal = goals.find((candidate) => candidate.id === goalId && candidate.type === 'finance') as FinanceGoal | undefined;
     if (!goal) return;
 
     // Simulate sync with random balance change (same logic as useAppStore)

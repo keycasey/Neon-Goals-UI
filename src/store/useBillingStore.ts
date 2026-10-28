@@ -57,7 +57,7 @@ export const useBillingStore = create<BillingState>()(
             },
             subscription: {
               plan,
-              status: (data.subscriptionStatus as any) || 'free',
+              status: data.subscriptionStatus || 'free',
             },
             isLoading: false,
           });

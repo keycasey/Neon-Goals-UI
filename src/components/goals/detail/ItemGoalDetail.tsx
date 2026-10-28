@@ -76,7 +76,7 @@ export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
 
       return matchingCandidate || null; // Don't auto-select denied candidates
     });
-  }, [latestGoal.candidates, latestGoal.selectedCandidateId, latestGoal.productImage, latestGoal.id, latestGoal.statusBadge, latestGoal.deniedCandidates, justCompletedScrape]);
+  }, [latestGoal, justCompletedScrape]);
 
   // Check if there are any candidates OR shortlisted items OR a selected candidate
   const hasCandidates = (latestGoal.candidates && latestGoal.candidates.length > 0) ||
@@ -143,7 +143,7 @@ export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
     }
 
     prevStatusRef.current = currentStatus;
-  }, [latestGoal.statusBadge, latestGoal.candidates, candidateCountBeforeSearch]);
+  }, [latestGoal.statusBadge, latestGoal.candidates, candidateCountBeforeSearch, scrapeCompleted]);
 
   // Track candidate count changes to clear scrapedWithNoResults when candidates arrive
   const prevCandidateCountRef = useRef(0);
@@ -174,7 +174,7 @@ export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
       retailerUrl: candidate.url,
       productImage: candidate.image,
       selectedCandidateId: candidate.id,
-    } as any);
+    } as Partial<ItemGoal>);
   };
 
   const handleShortlistChange = (shortlistedCandidates: ProductCandidate[]) => {
@@ -192,7 +192,7 @@ export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
     updateGoal(latestGoal.id, {
       candidates: updatedCandidates,
       shortlistedCandidates,
-    } as any);
+    } as Partial<ItemGoal>);
   };
 
   const handleDeniedChange = (deniedCandidates: ProductCandidate[]) => {
@@ -208,7 +208,7 @@ export const ItemGoalDetail: React.FC<ItemGoalDetailProps> = ({ goal }) => {
     updateGoal(latestGoal.id, {
       candidates: updatedCandidates,
       deniedCandidates,
-    } as any);
+    } as Partial<ItemGoal>);
   };
 
   // Listen for close-scanner event from parent ESC handler

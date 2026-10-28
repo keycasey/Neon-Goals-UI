@@ -32,7 +32,7 @@ export function validatePassword(password: string): ValidationResult {
   if (!/\d/.test(password)) {
     errors.push('Password must contain at least one number');
   }
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     errors.push('Password must contain at least one special character');
   }
 
@@ -52,7 +52,7 @@ export function getPasswordStrength(password: string): PasswordStrength {
   if (password.length >= 12) score++;
   if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
   if (/\d/.test(password)) score++;
-  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
+  if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) score++;
 
   const strengthMap: Record<number, PasswordStrength> = {
     0: { score: 0, label: 'Very Weak', color: 'bg-destructive' },

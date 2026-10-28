@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,31 +28,32 @@ const CADENCES = [
   { value: 'quarterly', label: 'Quarterly' },
   { value: 'annual', label: 'Annual' },
 ] as const;
+type Cadence = (typeof CADENCES)[number]['value'];
 
 export const ManualCashflowDialog: React.FC<Props> = ({ open, onOpenChange, initialValues = null }) => {
   const addManualCashflow = useProjectionStore((s) => s.addManualCashflow);
   const [label, setLabel] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
-  const [cadence, setCadence] = useState<'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual'>('monthly');
+  const [cadence, setCadence] = useState<Cadence>('monthly');
   const [category, setCategory] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setLabel(initialValues?.label ?? '');
     setAmount(initialValues?.amount ? String(initialValues.amount) : '');
     setType(initialValues?.type ?? 'income');
     setCadence(initialValues?.cadence ?? 'monthly');
     setCategory(initialValues?.category ?? '');
     setError('');
-  };
+  }, [initialValues]);
 
   React.useEffect(() => {
     if (open) {
       reset();
     }
-  }, [open, initialValues]);
+  }, [open, reset]);
 
   const handleSave = async () => {
     if (!label.trim()) { setError('Label is required'); return; }
@@ -139,7 +140,7 @@ export const ManualCashflowDialog: React.FC<Props> = ({ open, onOpenChange, init
               <label className="text-xs text-muted-foreground">Frequency</label>
               <select
                 value={cadence}
-                onChange={(e) => setCadence(e.target.value as any)}
+                onChange={(e) => setCadence(e.target.value as Cadence)}
                 className="w-full p-2 rounded-lg bg-muted/30 border border-border/30 text-sm text-foreground"
               >
                 {CADENCES.map((c) => (

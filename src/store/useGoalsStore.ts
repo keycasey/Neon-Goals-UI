@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Goal, ActionGoal } from '@/types/goals';
+import type { Goal, ActionGoal, GoalType, ItemGoal } from '@/types/goals';
 import { goalsService } from '@/services/goalsService';
 import { useAuthStore } from './useAuthStore';
 import { mockGoals } from '@/data/mockGoals';
@@ -98,7 +98,7 @@ interface GoalsState {
   archiveGoal: (id: string) => void;
 
   // Subgoal actions
-  createSubgoal: (data: any, parentGoalId: string) => Promise<void>;
+  createSubgoal: (data: { type: GoalType; [key: string]: unknown }, parentGoalId: string) => Promise<void>;
 
   // Task actions (for ActionGoals)
   toggleTask: (goalId: string, taskId: string) => Promise<void>;
@@ -109,7 +109,7 @@ interface GoalsState {
   searchAndUpdateGoal: (goalId: string, query?: string) => Promise<void>;
 
   // Progress update
-  updateGoalProgress: (goalId: string, data: any) => Promise<void>;
+  updateGoalProgress: (goalId: string, data: Record<string, unknown>) => Promise<void>;
 }
 
 export const useGoalsStore = create<GoalsState>()((set, get) => ({
@@ -138,7 +138,7 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
       set({ isLoading: true, error: null });
       const goals = await goalsService.getAll();
       set({ goals, isLoading: false, goalsVersion: get().goalsVersion + 1 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch goals:', error);
       set({ error: 'Failed to fetch goals', isLoading: false });
     }
@@ -332,7 +332,7 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
       console.error('Failed to refresh candidates:', error);
       set((state) => ({
         goals: state.goals.map((goal) =>
-          goal.id === goalId && (goal as any).statusBadge === 'pending_search'
+          goal.id === goalId && (goal as ItemGoal).statusBadge === 'pending_search'
             ? { ...goal, statusBadge: 'in_stock' }
             : goal
         ),
