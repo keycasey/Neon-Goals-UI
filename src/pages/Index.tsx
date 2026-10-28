@@ -113,7 +113,7 @@ const Index = () => {
         <main
           className={cn(
             "flex-1 min-w-0 p-4 lg:p-6 overflow-y-auto scrollbar-neon",
-            !isChatMinimized && "lg:pr-[416px]"
+            !isChatMinimized && "2xl:pr-[416px]"
           )}
         >
           {/* Page Title */}

@@ -26,6 +26,7 @@ const findGoalById = (goals: Goal[], id: string): Goal | null => {
 
 export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose }) => {
   const [isDesktop, setIsDesktop] = useState(false);
+  const [hasDockedChat, setHasDockedChat] = useState(false);
   const {
     isChatMinimized,
     goalNavigationStack,
@@ -92,7 +93,10 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
 
   // Track desktop breakpoint for sidebar handle margin
   useEffect(() => {
-    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+      setHasDockedChat(window.innerWidth >= 1536);
+    };
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
     return () => window.removeEventListener('resize', checkDesktop);
@@ -129,8 +133,8 @@ export const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onClose })
         className="absolute top-0 z-30"
         style={{
           left: isDesktop ? SIDEBAR_HANDLE_WIDTH : 0,
-          right: isChatMinimized ? 0 : undefined,
-          width: isChatMinimized ? undefined : isDesktop ? 'calc(100% - 48px - 416px)' : '100%',
+          right: isChatMinimized || !hasDockedChat ? 0 : undefined,
+          width: isChatMinimized || !hasDockedChat ? undefined : 'calc(100% - 48px - 416px)',
         }}
       >
         <GoalBreadcrumb

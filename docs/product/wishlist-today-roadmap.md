@@ -49,3 +49,21 @@ Neon Goals should help a vague want become a deliberate commitment without forci
 ### Desktop surface
 
 Build a dedicated compact Today route first, then wrap it with Tauri. The native shell should be frameless, launch at login, remember position, stay out of the taskbar, and offer an optional always-on-top mode. Keep the widget limited to the top actions, completion controls, quick capture, and one goal-attention signal.
+
+## UX/CX remediation plan
+
+Track this sequence as one release so responsive fixes, interaction semantics, and onboarding copy do not drift apart.
+
+- [x] Remove the 1024–1350px layout cliff by auto-minimizing chat and making dense controls respond to content width.
+- [x] Redesign wishlist capture around one required title field with progressively disclosed optional details.
+- [x] Keep title and notes comfortably editable at every width; never compress free-text controls into utility-control widths.
+- [x] Add wishlist editing for title, notes, budget, priority, and purchase timing.
+- [x] Make removal recoverable with an Undo window.
+- [x] Reserve Researching for real research work; do not expose it as a cosmetic manual state.
+- [x] Prioritize strategic, dated, stalled, and action-oriented goals in Goal Pulse; exclude ordinary product-search noise.
+- [x] Make the Today hero and planner layout respond to available content width rather than viewport labels.
+- [x] Replace the empty sidebar list on Today and Wishlist with context-relevant records.
+- [x] Align assistant language with Wishlist versus Product Research.
+- [x] Replace duplicate empty-state coaching with useful quick-capture examples.
+- [x] Seed demo mode with scheduled work, an overdue action, and representative wishlist items.
+- [x] Verify mobile, tablet, medium desktop, and wide desktop layouts before release.

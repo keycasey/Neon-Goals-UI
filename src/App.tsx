@@ -126,6 +126,8 @@ const MainLayout = () => {
 const AppContent = () => {
   const initializeApp = useAuthStore((state) => state.initializeApp);
   const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+  const isDemoMode = useAuthStore((state) => state.isDemoMode);
   const fetchGoals = useGoalsStore((state) => state.fetchGoals);
   const fetchBilling = useBillingStore((state) => state.fetchBilling);
   const fetchWishlist = useWishlistStore((state) => state.fetchItems);
@@ -150,10 +152,15 @@ const AppContent = () => {
       if (useAuthStore.getState().user) {
         fetchGoals();
         fetchBilling();
-        fetchWishlist();
       }
     });
-  }, [initializeApp, fetchGoals, fetchBilling, fetchWishlist]);
+  }, [initializeApp, fetchGoals, fetchBilling]);
+
+  // AppContent stays mounted while the login route navigates into the app, so
+  // wishlist data must follow auth state instead of only the initial bootstrap.
+  useEffect(() => {
+    if (user || isDemoMode) void fetchWishlist();
+  }, [user, isDemoMode, fetchWishlist]);
 
   // Handle Stripe checkout success redirect — refetch billing + clean URL
   useEffect(() => {

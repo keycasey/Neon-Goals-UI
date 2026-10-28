@@ -9,6 +9,7 @@ import { useGoalsStore } from '@/store/useGoalsStore';
 import { useViewStore } from '@/store/useViewStore';
 import type { ActionGoal, ActionTask, Goal } from '@/types/goals';
 import { GoalPlanningDialog } from './GoalPlanningDialog';
+import { getGoalPulseEntries } from '@/lib/goalPulse';
 
 interface ScheduledAction {
   goal: ActionGoal;
@@ -30,7 +31,7 @@ export function TodayDashboard() {
   const selectGoal = useViewStore((state) => state.selectGoal);
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [plannerGoalId, setPlannerGoalId] = useState<string>();
-  const today = startOfDay(new Date());
+  const today = useMemo(() => startOfDay(new Date()), []);
 
   const actions = useMemo(() => {
     const scheduled: ScheduledAction[] = [];
@@ -62,23 +63,7 @@ export function TodayDashboard() {
     return result;
   }, [goals, today]);
 
-  const goalPulse = useMemo(() => {
-    return goals
-      .filter((goal) => goal.status === 'active')
-      .map((goal) => {
-        const actionGoal = goal.type === 'action' ? goal as ActionGoal : null;
-        const openTasks = actionGoal?.tasks.filter((task) => !task.completed) || [];
-        const needsAction = goal.type === 'action' && openTasks.length === 0;
-        const deadline = goal.deadline ? new Date(goal.deadline) : null;
-        return { goal, needsAction, deadline };
-      })
-      .sort((a, b) => {
-        if (a.needsAction !== b.needsAction) return a.needsAction ? -1 : 1;
-        if (a.deadline && b.deadline) return a.deadline.getTime() - b.deadline.getTime();
-        return a.deadline ? -1 : 1;
-      })
-      .slice(0, 5);
-  }, [goals]);
+  const goalPulse = useMemo(() => getGoalPulseEntries(goals).slice(0, 5), [goals]);
 
   const openPlanner = (goalId?: string) => {
     setPlannerGoalId(goalId);

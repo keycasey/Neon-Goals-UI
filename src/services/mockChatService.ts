@@ -203,7 +203,8 @@ Just tell me what you'd like to work on!`,
 const greetingResponse: MockChatResponse = {
   content: `What would you like to work on today? I can help you with:
 
-• **Items** - Products you want to purchase
+• **Wishlist** - Capture something you may want without committing
+• **Product Research** - Compare products once you are ready
 • **Finances** - Money goals and tracking
 • **Actions** - Skills to learn or habits to build
 

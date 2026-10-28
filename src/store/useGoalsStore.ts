@@ -4,7 +4,37 @@ import { goalsService } from '@/services/goalsService';
 import { useAuthStore } from './useAuthStore';
 import { mockGoals } from '@/data/mockGoals';
 
-const getDemoGoals = (): Goal[] => [...mockGoals];
+const getDemoGoals = (): Goal[] => {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  let scheduledActionIndex = 0;
+  const hydrate = (goal: Goal): Goal => {
+    const subgoals = goal.subgoals?.map(hydrate);
+    if (goal.type !== 'action') return { ...goal, subgoals };
+
+    const actionGoal = goal as ActionGoal;
+    const scheduleDate = scheduledActionIndex === 0 ? today : scheduledActionIndex === 1 ? yesterday : null;
+    scheduledActionIndex += 1;
+    let scheduled = false;
+    return {
+      ...actionGoal,
+      deadline: new Date(today.getTime() + (14 + scheduledActionIndex * 7) * 86_400_000).toISOString(),
+      tasks: actionGoal.tasks.map((task) => {
+        if (!scheduled && !task.completed && scheduleDate) {
+          scheduled = true;
+          return { ...task, scheduledFor: scheduleDate.toISOString() };
+        }
+        return { ...task };
+      }),
+      subgoals,
+    };
+  };
+
+  return mockGoals.map(hydrate);
+};
 
 const isPersistedDemoMode = () => {
   try {

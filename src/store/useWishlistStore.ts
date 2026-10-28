@@ -39,13 +39,45 @@ const makeDemoItem = (input: CreateWishlistItemInput): WishlistItem => ({
   updatedAt: new Date().toISOString(),
 });
 
+const getDemoWishlist = (): WishlistItem[] => [
+  {
+    id: 'demo-wish-bidet',
+    title: 'Bidet',
+    notes: 'Warm water preferred; measure the seat before researching models.',
+    targetBudget: 180,
+    currency: 'USD',
+    priority: 'soon',
+    stage: 'idea',
+    earliestPurchaseDate: null,
+    linkedGoalId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'demo-wish-lamp',
+    title: 'Better desk lamp',
+    notes: 'Warm, dimmable light with a small footprint.',
+    targetBudget: 120,
+    currency: 'USD',
+    priority: 'interested',
+    stage: 'saving',
+    earliestPurchaseDate: null,
+    linkedGoalId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 export const useWishlistStore = create<WishlistState>()((set, get) => ({
   items: [],
   isLoading: false,
   error: null,
   resetStore: () => set({ items: [], isLoading: false, error: null }),
   fetchItems: async () => {
-    if (useAuthStore.getState().isDemoMode) return;
+    if (useAuthStore.getState().isDemoMode) {
+      set({ items: getDemoWishlist(), isLoading: false, error: null });
+      return;
+    }
     set({ isLoading: true, error: null });
     try {
       set({ items: await wishlistService.getAll(), isLoading: false });

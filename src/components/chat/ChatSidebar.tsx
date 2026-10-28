@@ -86,7 +86,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           mass: 0.8
         }}
         className={cn(
-          "hidden lg:flex flex-col fixed top-16 bottom-0 right-0 w-[400px] overflow-hidden border-l border-border bg-card/30 p-4 z-50",
+          "hidden 2xl:flex flex-col fixed top-16 bottom-0 right-0 w-[400px] overflow-hidden border-l border-border bg-card/30 p-4 z-50",
           isMinimized && mode !== 'goal' && "pointer-events-none",
           className
         )}
@@ -114,7 +114,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           scale: { duration: 0.2 }
         }}
         className={cn(
-          "hidden lg:flex fixed bottom-6 right-6 z-[70] w-14 h-14 rounded-full",
+          "hidden 2xl:flex fixed bottom-6 right-6 z-[70] w-14 h-14 rounded-full",
           "items-center justify-center",
           "hover:scale-110 cursor-pointer transition-transform",
           "shadow-lg",
@@ -152,7 +152,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           scale: { duration: 0.2 }
         }}
         className={cn(
-          "lg:hidden flex fixed bottom-6 right-6 z-[70] w-14 h-14 rounded-full",
+          "2xl:hidden flex fixed bottom-6 right-6 z-[70] w-14 h-14 rounded-full",
           "bg-gradient-neon text-primary-foreground neon-glow-cyan",
           "items-center justify-center",
           "hover:scale-110 cursor-pointer transition-transform",
@@ -177,7 +177,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               stiffness: 260,
               damping: 25
             }}
-            className="lg:hidden fixed inset-0 z-[70] flex flex-col bg-background"
+            className="2xl:hidden fixed inset-0 z-[70] flex flex-col bg-background"
           >
             <ChatPanel
               mode={mode}

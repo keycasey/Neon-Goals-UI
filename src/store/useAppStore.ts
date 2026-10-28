@@ -213,7 +213,7 @@ export const useAppStore = create<AppState>()(
           {
             id: '1',
             role: 'assistant',
-            content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
+            content: "What would you like to work on today? I can help you with:\n\n- **Wishlist** - Capture something you may want without committing\n- **Product Research** - Compare products once you are ready\n- **Finances** - Money goals and tracking\n- **Actions** - Skills, habits, and next steps",
             timestamp: new Date(),
           }
         ],
@@ -326,7 +326,7 @@ export const useAppStore = create<AppState>()(
               {
                 id: '1',
                 role: 'assistant',
-                content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
+                content: "What would you like to work on today? I can help you with:\n\n- **Wishlist** - Capture something you may want without committing\n- **Product Research** - Compare products once you are ready\n- **Finances** - Money goals and tracking\n- **Actions** - Skills, habits, and next steps",
                 timestamp: new Date(),
               },
             ],
@@ -1259,7 +1259,7 @@ export const useAppStore = create<AppState>()(
             messages: [{
               id: '1',
               role: 'assistant',
-              content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
+              content: "What would you like to work on today? I can help you with:\n\n- **Wishlist** - Capture something you may want without committing\n- **Product Research** - Compare products once you are ready\n- **Finances** - Money goals and tracking\n- **Actions** - Skills, habits, and next steps",
               timestamp: new Date(),
             }],
             isLoading: false,
@@ -2128,7 +2128,7 @@ export const useAppStore = create<AppState>()(
               {
                 id: '1',
                 role: 'assistant',
-                content: "What would you like to work on today? I can help you with:\n\n- **Items** - Products you want to purchase\n- **Finances** - Money goals and tracking\n- **Actions** - Skills to learn or habits to build",
+                content: "What would you like to work on today? I can help you with:\n\n- **Wishlist** - Capture something you may want without committing\n- **Product Research** - Compare products once you are ready\n- **Finances** - Money goals and tracking\n- **Actions** - Skills, habits, and next steps",
                 timestamp: new Date(),
               }
             ],

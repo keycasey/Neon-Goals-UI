@@ -14,6 +14,8 @@ describe('WishlistView', () => {
     render(<WishlistView />);
 
     fireEvent.change(screen.getByLabelText('Wishlist item'), { target: { value: 'Bidet' } });
+    expect(screen.queryByLabelText('Wishlist notes')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add notes, budget, or priority' }));
     fireEvent.change(screen.getByLabelText('Wishlist notes'), { target: { value: 'Warm water preferred' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 

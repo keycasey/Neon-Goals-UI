@@ -21,6 +21,7 @@ import { useGoalsStore } from '@/store/useGoalsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { ActionGoal, GoalCategory } from '@/types/goals';
 import { useWishlistStore } from '@/store/useWishlistStore';
+import { getGoalPulseEntries } from '@/lib/goalPulse';
 
 // SIDEBAR WIDTH - exported for use in other components
 export const SIDEBAR_WIDTH = 280;
@@ -161,6 +162,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
     if (activeCategory === 'actions') return goal.type === 'action' && goal.status === 'active';
     return false;
   });
+  const sidebarGoals = activeCategory === 'today'
+    ? getGoalPulseEntries(goals).slice(0, 5).map((entry) => entry.goal)
+    : filteredGoals;
+  const sidebarLabel = activeCategory === 'today'
+    ? 'Needs attention'
+    : activeCategory === 'wishlist'
+      ? 'Recent wishes'
+      : 'Your goals';
+
+  const handleCategorySelect = (category: GoalCategory) => {
+    setActiveCategory(category);
+    if (isMobile) setSidebarOpen(false);
+  };
 
   const getCategoryCount = (category: GoalCategory) => {
     if (category === 'wishlist') return wishlistItems.filter((item) => !['purchased', 'dropped'].includes(item.stage)).length;
@@ -288,7 +302,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
           {categories.map((category) => (
             <button
               key={category.id}
-              onClick={() => setActiveCategory(category.id)}
+              onClick={() => handleCategorySelect(category.id)}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all",
                 activeCategory === category.id
@@ -319,10 +333,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
         {/* Goals List (always visible) */}
         <div className="flex-1 p-4 border-t border-sidebar-border">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Your Goals
+              {sidebarLabel}
             </p>
             <div className="space-y-2">
-              {filteredGoals.map((goal) => (
+              {activeCategory === 'wishlist' && wishlistItems
+                .filter((item) => !['purchased', 'dropped'].includes(item.stage))
+                .slice(0, 5)
+                .map((item) => (
+                  <div key={item.id} className="rounded-lg px-3 py-2.5 hover:bg-sidebar-accent/40">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">✨</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                        <p className="truncate text-xs capitalize text-muted-foreground">{item.priority} · {item.stage}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              {sidebarGoals.map((goal) => (
                 <button
                   key={goal.id}
                   onClick={() => selectGoal(goal.id)}

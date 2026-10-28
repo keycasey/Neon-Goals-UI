@@ -271,7 +271,7 @@ export const CandidateScanner: React.FC<CandidateScannerProps> = ({
         "fixed top-0 bottom-0 z-50 bg-background/98 backdrop-blur-xl flex flex-col",
         // Start from left edge on mobile, after sidebar handle on desktop (48px)
         "left-0 lg:left-[48px]",
-        isChatMinimized ? "right-0" : "lg:right-[400px] right-0"
+        isChatMinimized ? "right-0" : "2xl:right-[400px] right-0"
       )}
     >
       {/* CRT Scanline overlay effect */}
