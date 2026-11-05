@@ -234,5 +234,5 @@ export interface ChatState {
   isLoading: boolean;
 }
 
-export type GoalCategory = 'today' | 'all' | 'wishlist' | 'items' | 'finances' | 'actions' | 'groups';
+export type GoalCategory = 'today' | 'todos' | 'all' | 'wishlist' | 'items' | 'finances' | 'actions' | 'groups';
 export type ViewMode = 'list' | 'card';

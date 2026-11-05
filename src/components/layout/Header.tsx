@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ className, accountDropdownOpen, 
       </div>
 
       {/* Center Section - View Toggle (Mobile/Tablet) */}
-      <div className={cn("md:hidden items-center", ['today', 'wishlist'].includes(activeCategory) ? 'hidden' : 'flex')}>
+      <div className={cn("md:hidden items-center", ['today', 'todos', 'wishlist'].includes(activeCategory) ? 'hidden' : 'flex')}>
         <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-border">
           <button
             onClick={() => setViewMode('list')}

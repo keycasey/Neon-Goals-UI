@@ -14,6 +14,7 @@ import {
   ChevronRight,
   CalendarCheck2,
   Sparkles,
+  ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useViewStore } from '@/store/useViewStore';
@@ -21,6 +22,7 @@ import { useGoalsStore } from '@/store/useGoalsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { ActionGoal, GoalCategory } from '@/types/goals';
 import { useWishlistStore } from '@/store/useWishlistStore';
+import { useTodoStore } from '@/store/useTodoStore';
 import { getGoalPulseEntries } from '@/lib/goalPulse';
 
 // SIDEBAR WIDTH - exported for use in other components
@@ -29,6 +31,7 @@ export const SIDEBAR_HANDLE_WIDTH = 48;
 
 const categories: { id: GoalCategory; label: string; icon: React.ReactNode }[] = [
   { id: 'today', label: 'Today', icon: <CalendarCheck2 className="w-5 h-5" /> },
+  { id: 'todos', label: 'Todos', icon: <ListChecks className="w-5 h-5" /> },
   { id: 'all', label: 'All Goals', icon: <LayoutGrid className="w-5 h-5" /> },
   { id: 'wishlist', label: 'Wishlist', icon: <Sparkles className="w-5 h-5" /> },
   { id: 'items', label: 'Product Research', icon: <ShoppingBag className="w-5 h-5" /> },
@@ -48,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
   const { sidebarOpen, toggleSidebar, setSidebarOpen, activeCategory, setActiveCategory, viewMode, setViewMode, selectGoal, currentGoalId, closeGoal } = useViewStore();
   const { goals } = useGoalsStore();
   const wishlistItems = useWishlistStore((state) => state.items);
+  const todoItems = useTodoStore((state) => state.items);
   const { user } = useAuthStore();
 
   // Determine if we're in goal view mode
@@ -155,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
   };
 
   const filteredGoals = goals.filter(goal => {
-    if (activeCategory === 'today' || activeCategory === 'wishlist') return false;
+    if (activeCategory === 'today' || activeCategory === 'todos' || activeCategory === 'wishlist') return false;
     if (activeCategory === 'all') return goal.status === 'active';
     if (activeCategory === 'items') return goal.type === 'item' && goal.status === 'active';
     if (activeCategory === 'finances') return goal.type === 'finance' && goal.status === 'active';
@@ -167,6 +171,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
     : filteredGoals;
   const sidebarLabel = activeCategory === 'today'
     ? 'Needs attention'
+    : activeCategory === 'todos'
+      ? 'Next actions'
     : activeCategory === 'wishlist'
       ? 'Recent wishes'
       : 'Your goals';
@@ -178,6 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
 
   const getCategoryCount = (category: GoalCategory) => {
     if (category === 'wishlist') return wishlistItems.filter((item) => !['purchased', 'dropped'].includes(item.stage)).length;
+    if (category === 'todos') return todoItems.filter((item) => item.status === 'active').length;
     if (category === 'today') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -347,6 +354,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isGoalView = false 
                         <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
                         <p className="truncate text-xs capitalize text-muted-foreground">{item.priority} · {item.stage}</p>
                       </div>
+                    </div>
+                  </div>
+                ))}
+              {activeCategory === 'todos' && todoItems
+                .filter((item) => item.status === 'active')
+                .slice(0, 5)
+                .map((item) => (
+                  <div key={item.id} className="rounded-lg px-3 py-2.5 hover:bg-sidebar-accent/40">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">✓</span>
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{item.title}</p>
                     </div>
                   </div>
                 ))}
