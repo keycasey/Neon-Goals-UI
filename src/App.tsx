@@ -9,6 +9,7 @@ import { useViewStore } from "@/store/useViewStore";
 import { useGoalsStore } from "@/store/useGoalsStore";
 import { useBillingStore } from "@/store/useBillingStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
+import { useTodoStore } from "@/store/useTodoStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -131,6 +132,7 @@ const AppContent = () => {
   const fetchGoals = useGoalsStore((state) => state.fetchGoals);
   const fetchBilling = useBillingStore((state) => state.fetchBilling);
   const fetchWishlist = useWishlistStore((state) => state.fetchItems);
+  const fetchTodos = useTodoStore((state) => state.fetchItems);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -157,10 +159,13 @@ const AppContent = () => {
   }, [initializeApp, fetchGoals, fetchBilling]);
 
   // AppContent stays mounted while the login route navigates into the app, so
-  // wishlist data must follow auth state instead of only the initial bootstrap.
+  // Lightweight user data must follow auth state instead of only the initial bootstrap.
   useEffect(() => {
-    if (user || isDemoMode) void fetchWishlist();
-  }, [user, isDemoMode, fetchWishlist]);
+    if (user || isDemoMode) {
+      void fetchWishlist();
+      void fetchTodos();
+    }
+  }, [user, isDemoMode, fetchWishlist, fetchTodos]);
 
   // Handle Stripe checkout success redirect — refetch billing + clean URL
   useEffect(() => {

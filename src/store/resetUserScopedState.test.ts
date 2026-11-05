@@ -5,6 +5,7 @@ const financeReset = vi.fn();
 const chatReset = vi.fn();
 const projectionReset = vi.fn();
 const wishlistReset = vi.fn();
+const todoReset = vi.fn();
 
 vi.mock('./useGoalsStore', () => ({
   useGoalsStore: {
@@ -36,6 +37,10 @@ vi.mock('./useWishlistStore', () => ({
   },
 }));
 
+vi.mock('./useTodoStore', () => ({
+  useTodoStore: { getState: () => ({ resetStore: todoReset }) },
+}));
+
 import { resetUserScopedState } from './resetUserScopedState';
 
 describe('resetUserScopedState', () => {
@@ -45,6 +50,7 @@ describe('resetUserScopedState', () => {
     chatReset.mockReset();
     projectionReset.mockReset();
     wishlistReset.mockReset();
+    todoReset.mockReset();
   });
 
   it('clears all user-scoped stores', () => {
@@ -55,5 +61,6 @@ describe('resetUserScopedState', () => {
     expect(chatReset).toHaveBeenCalledTimes(1);
     expect(projectionReset).toHaveBeenCalledTimes(1);
     expect(wishlistReset).toHaveBeenCalledTimes(1);
+    expect(todoReset).toHaveBeenCalledTimes(1);
   });
 });

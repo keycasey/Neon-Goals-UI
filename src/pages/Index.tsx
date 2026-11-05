@@ -8,6 +8,7 @@ import { OverviewProjectionCard } from '@/components/goals/OverviewProjectionCar
 import { GoalSortBar } from '@/components/goals/GoalSortBar';
 import { TodayDashboard } from '@/components/today/TodayDashboard';
 import { WishlistView } from '@/components/wishlist/WishlistView';
+import { TodoView } from '@/components/todos/TodoView';
 import { useViewStore } from '@/store/useViewStore';
 import { useGoalsStore } from '@/store/useGoalsStore';
 import { cn } from '@/lib/utils';
@@ -76,6 +77,7 @@ const Index = () => {
   const getCategoryTitle = () => {
     switch (activeCategory) {
       case 'today': return 'Today';
+      case 'todos': return 'Todos';
       case 'wishlist': return 'Wishlist';
       case 'items': return 'Item Goals';
       case 'finances': return 'Financial Goals';
@@ -84,7 +86,7 @@ const Index = () => {
     }
   };
 
-  const isFocusView = activeCategory === 'today' || activeCategory === 'wishlist';
+  const isFocusView = activeCategory === 'today' || activeCategory === 'todos' || activeCategory === 'wishlist';
 
   return (
     <>
@@ -124,6 +126,8 @@ const Index = () => {
             <p className="text-muted-foreground">
               {activeCategory === 'today'
                 ? 'Move what matters without losing the horizon.'
+                : activeCategory === 'todos'
+                  ? 'Quick actions. Zero ceremony.'
                 : activeCategory === 'wishlist'
                   ? 'Keep the want. Delay the commitment.'
                   : 'Build your reality 🌴'}
@@ -131,6 +135,7 @@ const Index = () => {
           </div>
 
           {activeCategory === 'today' && <TodayDashboard />}
+          {activeCategory === 'todos' && <TodoView />}
           {activeCategory === 'wishlist' && <WishlistView />}
 
           {/* Projection Card on overview (motivation-first, lightweight) */}
