@@ -28,3 +28,30 @@ jobs:
           bun install --frozen-lockfile
           bun run build
           rsync -a --delete dist/ /var/www/Neon-Goals-UI/dist/
+
+          verify_json_field() {
+            local url=$1
+            local field=$2
+            local expected=$3
+            curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 1 "$url" |
+              bun -e '
+                const [field, expected] = process.argv.slice(1);
+                const document = await Bun.stdin.json();
+                if (document[field] !== expected) {
+                  throw new Error(`Expected ${field}=${expected}, received ${JSON.stringify(document[field])}`);
+                }
+              ' "$field" "$expected"
+          }
+
+          verify_json_field \
+            https://goals.keycasey.com/.well-known/oauth-authorization-server/api \
+            issuer \
+            https://goals.keycasey.com/api
+          verify_json_field \
+            https://goals.keycasey.com/.well-known/openid-configuration/api \
+            issuer \
+            https://goals.keycasey.com/api
+          verify_json_field \
+            https://goals.keycasey.com/.well-known/oauth-protected-resource/api/mcp \
+            resource \
+            https://goals.keycasey.com/api/mcp

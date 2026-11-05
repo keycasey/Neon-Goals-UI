@@ -1,0 +1,7 @@
+{
+  "resource": "https://goals.keycasey.com/api/mcp",
+  "authorization_servers": ["https://goals.keycasey.com/api"],
+  "scopes_supported": ["goals:read", "goals:write"],
+  "bearer_methods_supported": ["header"],
+  "resource_documentation": "https://goals.keycasey.com/api/oauth/docs"
+}
